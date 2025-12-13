@@ -35,14 +35,15 @@ def get_tts_url(text: str, lang: str = "es") -> str:
     return f"https://translate.google.com/translate_tts?ie=UTF-8&q={text_encoded}&tl={lang}&client=tw-ob"
 
 async def get_openai_tts(text: str) -> bytes:
-    """Genera audio con OpenAI TTS (voz natural)"""
+    """Genera audio con OpenAI TTS HD (voz natural de alta calidad)"""
     try:
         import openai
         client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         response = client.audio.speech.create(
-            model="tts-1",
-            voice="nova",  # Opciones: alloy, echo, fable, onyx, nova, shimmer
-            input=text[:4096]
+            model="tts-1-hd",  # HD = Alta definición, más natural
+            voice="shimmer",   # shimmer = voz femenina cálida y natural
+            input=text[:4096],
+            speed=1.0  # Velocidad normal
         )
         return response.content
     except Exception as e:
@@ -131,10 +132,10 @@ async def telegram_webhook(req: Request):
 /stats - Estadísticas
 /ayuda - Ver comandos
 
-_Escribe cualquier cosa para hablar con XONA_"""
+_Escribe cualquier cosa para hablar con CHONA_"""
                 await send_telegram_message(chat_id, menu)
             else:
-                await send_telegram_message(chat_id, "👋 *¡Hola! Soy XONA*, asistente de ORION Tech.\n\n¿En qué puedo ayudarte?\n\n📱 WhatsApp: (669) 234-2444\n🌐 Servicios de IA y Automatización")
+                await send_telegram_message(chat_id, "👋 *¡Hola parce! Soy CHONA*, asistente de ORION Tech.\n\n¿En qué puedo ayudarte?\n\n📱 WhatsApp: (669) 234-2444\n🌐 Servicios de IA y Automatización")
             return {"ok": True}
         
         # ============ VOZ TTS (OpenAI Natural) ============
