@@ -184,8 +184,8 @@ _Escribe cualquier cosa para hablar con CHONA_"""
             return {"ok": True}
         
         # ============ ACCESOS DIRECTOS ============
-        if text_lower.startswith("/acutor") or text_lower == "manual":
-            await send_telegram_message(chat_id, "📖 *MANUAL ORION SYSTEM*\n\n🔗 https://neon-agent-hub.web.app/jarvis_manual.html\n\n✅ Link Público - Guárdalo!")
+        if text_lower.startswith("/acutor") or text_lower.startswith("/manual"):
+            await send_telegram_message(chat_id, "📖 *MANUAL ORION SYSTEM*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/ORION_MANUAL_PROFESIONAL.html\n\n✅ Manual Completo - Guárdalo!")
             return {"ok": True}
         
         if text_lower.startswith("/pb") or text_lower == "pricebook":
@@ -196,16 +196,40 @@ _Escribe cualquier cosa para hablar con CHONA_"""
             await send_telegram_message(chat_id, "🔗 *ORION APPS*\n\n1️⃣ https://ai.studio/apps/drive/1vikKncwaJRxWOANGeEcnchTAM96CqmnZ\n2️⃣ https://ai.studio/apps/drive/1bMGhzGDqLL_aDfnSC78Ie_HnsF7b691I\n3️⃣ https://ai.studio/apps/drive/1BKOJ2-29twcjdG1BooF6-Nh82VpXm6Hi\n\n_Modo App habilitado_")
             return {"ok": True}
         
-        if text_lower.startswith("/otp") or text_lower == "orion bots":
-            await send_telegram_message(chat_id, "🤖 *ORION BOTS - Landing*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/orion-bots.html\n\n✨ Servicios de Automatización WhatsApp\n🚀 Bots Personalizados")
+        if text_lower.startswith("/otp"):
+            await send_telegram_message(chat_id, "🤖 *ORION TECH PRODUCTS*\n\n📋 *Industrias:*\n• /restaurant - Restaurantes\n• /salon - Salones\n• /liquor - Licoreras\n• /contractor - Contratistas\n• /retail - Retail\n• /enterprise - Enterprise\n\n🔗 https://agem2024.github.io/SEGURITI-USC/orion-bots.html")
             return {"ok": True}
         
-        # ============ PROFESIONAL ============
+        # ============ INDUSTRIAS ============
+        if text_lower.startswith("/restaurant"):
+            await send_telegram_message(chat_id, "🍽️ *RESTAURANTES*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/industry-restaurant.html")
+            return {"ok": True}
+        if text_lower.startswith("/salon"):
+            await send_telegram_message(chat_id, "💇 *SALONES DE BELLEZA*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/industry-salon.html")
+            return {"ok": True}
+        if text_lower.startswith("/liquor"):
+            await send_telegram_message(chat_id, "🍷 *LICORERAS*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/industry-liquor.html")
+            return {"ok": True}
+        if text_lower.startswith("/contractor"):
+            await send_telegram_message(chat_id, "🔧 *CONTRATISTAS*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/industry-contractor.html")
+            return {"ok": True}
+        if text_lower.startswith("/retail"):
+            await send_telegram_message(chat_id, "🛒 *RETAIL*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/industry-retail.html")
+            return {"ok": True}
+        if text_lower.startswith("/enterprise"):
+            await send_telegram_message(chat_id, "🏢 *ENTERPRISE*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/industry-enterprise.html")
+            return {"ok": True}
+        
+        # ============ PROFESIONAL (orden importante: cv2 antes de cv) ============
+        if text_lower.startswith("/cv2"):
+            await send_telegram_message(chat_id, "📄 *CV VERSIÓN 2*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/cv_professional.html\n\n👤 Alex G. Espinosa\n🎯 Versión Profesional Extendida")
+            return {"ok": True}
+        
         if text_lower.startswith("/cv"):
-            await send_telegram_message(chat_id, "📄 *CV PROFESIONAL*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/cv_pro.html\n\n👤 Alex G. Espinosa\n🎯 AI Architect | 21+ años experiencia")
+            await send_telegram_message(chat_id, "📄 *CV PROFESIONAL*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/cv_pro.html\n\n👤 Alex G. Espinosa\n🎯 AI Architect | 21+ años experiencia\n\n_Usa /cv2 para versión extendida_")
             return {"ok": True}
         
-        if text_lower.startswith("/tj"):
+        if text_lower.startswith("/tj") or text_lower.startswith("/card"):
             await send_telegram_message(chat_id, "💼 *TARJETA DIGITAL*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/card.html\n\n📱 Contacto profesional digital")
             return {"ok": True}
         
@@ -214,7 +238,12 @@ _Escribe cualquier cosa para hablar con CHONA_"""
             return {"ok": True}
         
         if text_lower.startswith("/landing"):
-            await send_telegram_message(chat_id, "🌐 *LANDING PAGE*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/orion-bots.html\n\n🚀 ORION Tech - AI Solutions")
+            await send_telegram_message(chat_id, "🌐 *LANDING PAGE ORION TECH*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/orion-bots.html\n\n🚀 Servicios de IA y Automatización")
+            return {"ok": True}
+        
+        # ============ CALENDARIO (básico por ahora) ============
+        if text_lower.startswith("/cal") or text_lower.startswith("/calendario"):
+            await send_telegram_message(chat_id, "📅 *CALENDARIO*\n\n⏰ Función de calendario en desarrollo para cloud.\n\n_El calendario completo está disponible en ORION local (WhatsApp)_")
             return {"ok": True}
         
         # ============ SISTEMA (SOLO OWNER) ============
@@ -227,30 +256,38 @@ _Escribe cualquier cosa para hablar con CHONA_"""
             return {"ok": True}
         
         if text_lower.startswith("/ayuda") or text_lower == "help" or text_lower == "?":
-            ayuda = """❓ *AYUDA ORION CLOUD v3*
+            ayuda = """❓ *AYUDA ORION CLOUD v4*
 
 *📖 Accesos:*
-/acutor - Manual
+/acutor - Manual ORION
 /pb - Price Book
 /apps - Orion Apps
-/otp - Orion Bots
+/otp - Productos por industria
+
+*🏢 Industrias:*
+/restaurant /salon /liquor
+/contractor /retail /enterprise
 
 *💼 Profesional:*
-/cv - CV
-/tj - Tarjeta
+/cv - CV Principal
+/cv2 - CV Extendido
+/tj - Tarjeta Digital
 /skills - Skills
-/landing - Landing
+/landing - Landing Page
 
 *🎤 Voz & IA:*
-/say [texto] - TTS
+/say [texto] - Texto a voz HD
 /orvoz [texto] - IA + voz
 /tr [texto] a [idioma] - Traducir
 
-*🔧 Sistema:*
-/status - Estado
-/stats - Stats
+*📅 Productividad:*
+/cal - Calendario
 
-_O escribe cualquier pregunta para XONA_"""
+*🔧 Sistema (Owner):*
+/status - Estado
+/stats - Estadísticas
+
+_Escribe cualquier pregunta para CHONA_"""
             await send_telegram_message(chat_id, ayuda)
             return {"ok": True}
         
