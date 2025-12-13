@@ -21,7 +21,7 @@ logger = logging.getLogger("ORION_CLOUD")
 
 # Variables de Entorno
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-TELEGRAM_OWNER_ID = int(os.getenv("TELEGRAM_OWNER_ID", "8572298959")) # Whitelist por defecto
+OWNER_ID = 5989183300  # Alex - puede usar comandos especiales
 BASE_URL = os.getenv("BASE_URL") # URL de Render
 
 # Inicializar Cerebro
@@ -63,32 +63,38 @@ async def telegram_webhook(req: Request):
         chat_id = msg["chat"]["id"]
         user_id = msg["from"]["id"]
         
-        # 🔒 SEGURIDAD: Whitelist Check - DISABLED (XONA es para clientes públicos)
-        # if user_id != TELEGRAM_OWNER_ID:
-        #     logger.warning(f"⛔ Intento de acceso no autorizado: {user_id}")
-        #     return {"ok": True} # Ignorar silenciosamente
-
-        # Detectar Idioma (básico)
+        # Detectar Idioma
         lang_code = msg["from"].get("language_code", "en")
         lang = "es" if lang_code.startswith("es") else "en"
-
+        
+        is_owner = (user_id == OWNER_ID)
         response_text = ""
 
         # Manejo de voz
         if "voice" in msg:
-            # TODO: Descargar audio y transcribir (requiere manejo de archivos temporales)
-            response_text = "🎤 Audio recibido. (Procesamiento de voz en nube pendiente de config de archivos)"
-            # Para producción real, aquí descargaríamos el file_id
+            response_text = "🎤 Audio recibido. Función en desarrollo."
         
         # Manejo de texto
         elif "text" in msg:
             text = msg["text"]
+            text_lower = text.lower().strip()
             
-            # Comandos básicos
+            # /start - Todos
             if text == "/start":
-                response_text = f"🚀 **ORION CLOUD ONLINE**\nID Autorizado: {user_id}\n\nListo para trabajar."
+                if is_owner:
+                    response_text = f"🚀 *ORION CLOUD ONLINE*\n👑 Owner Mode: ACTIVADO\nID: {user_id}\n\n*Comandos especiales:*\n/status - Estado del sistema\n/stats - Estadísticas\n\nO escribe cualquier cosa para hablar con XONA."
+                else:
+                    response_text = f"👋 *¡Hola! Soy XONA*, asistente de ORION Tech.\n\n¿En qué puedo ayudarte hoy?\n\n📱 WhatsApp: (669) 234-2444\n🌐 Servicios de IA y Automatización"
+            
+            # Comandos especiales - SOLO OWNER
+            elif text_lower == "/status" and is_owner:
+                response_text = "🟢 *ORION CLOUD STATUS*\n\n✅ Brain: Online\n✅ Webhook: Active\n✅ API: Running\n\n🌐 https://orion-cloud.onrender.com"
+            
+            elif text_lower == "/stats" and is_owner:
+                response_text = "📊 *ESTADÍSTICAS*\n\n🤖 Sistema: XONA v2.0\n☁️ Host: Render\n🧠 IA: Gemini/OpenAI\n\n_Stats detalladas próximamente_"
+            
+            # Cualquier otro texto - XONA responde a TODOS
             else:
-                # Consultar al Cerebro XONA
                 response_text = brain.get_response(text, str(user_id), lang)
 
         # Enviar respuesta
