@@ -363,12 +363,58 @@ def ask_voice_ai(user_input: str, lang: str = "es") -> str:
 
 @app.get("/voice")
 def voice_status():
-    return {"status": "ok", "service": "XONA Voice Server", "endpoints": ["/incoming-call", "/incoming-call-en"]}
+    return {"status": "ok", "service": "XONA Voice Server", "endpoints": ["/incoming-call", "/incoming-call-en", "/incoming-call-es"]}
 
 @app.api_route("/incoming-call", methods=["GET", "POST"])
+async def incoming_call_menu():
+    """Handle incoming call with language menu"""
+    base_url = os.getenv("BASE_URL", "https://orion-cloud.onrender.com")
+    twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Gather numDigits="1" action="{base_url}/select-language" method="POST" timeout="5">
+        <Say language="en-US" voice="Polly.Joanna">Welcome to ORION Tech. Press 1 for English.</Say>
+        <Say language="es-MX" voice="Polly.Mia">Bienvenido a ORION Tech. Presione 2 para español.</Say>
+    </Gather>
+    <Say language="en-US">We didn't receive a response. Goodbye.</Say>
+    <Say language="es-MX">No recibimos respuesta. Hasta luego.</Say>
+</Response>'''
+    return Response(content=twiml, media_type="application/xml")
+
+@app.api_route("/select-language", methods=["GET", "POST"])
+async def select_language(Digits: str = Form(None)):
+    """Route to correct language based on selection"""
+    base_url = os.getenv("BASE_URL", "https://orion-cloud.onrender.com")
+    
+    if Digits == "1":
+        # English selected
+        twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say language="en-US" voice="Polly.Joanna">Hello! I'm XONA, assistant for ORION Tech. How can I help you?</Say>
+    <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
+    <Say language="en-US">I didn't hear anything. Goodbye.</Say>
+</Response>'''
+    elif Digits == "2":
+        # Spanish selected
+        twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say language="es-MX" voice="Polly.Mia">¡Hola parce! Soy CHONA, asistente de ORION Tech. ¿En qué te puedo ayudar?</Say>
+    <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
+    <Say language="es-MX">No escuché nada. Hasta luego.</Say>
+</Response>'''
+    else:
+        # Invalid option, retry
+        twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+    <Say language="en-US">Invalid option.</Say>
+    <Say language="es-MX">Opción inválida.</Say>
+    <Redirect>{base_url}/incoming-call</Redirect>
+</Response>'''
+    
+    return Response(content=twiml, media_type="application/xml")
+
 @app.api_route("/incoming-call-es", methods=["GET", "POST"])
 async def incoming_call_es():
-    """Handle incoming Spanish call"""
+    """Handle incoming Spanish call (direct)"""
     base_url = os.getenv("BASE_URL", "https://orion-cloud.onrender.com")
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
