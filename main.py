@@ -63,10 +63,10 @@ async def telegram_webhook(req: Request):
         chat_id = msg["chat"]["id"]
         user_id = msg["from"]["id"]
         
-        # 🔒 SEGURIDAD: Whitelist Check
-        if user_id != TELEGRAM_OWNER_ID:
-            logger.warning(f"⛔ Intento de acceso no autorizado: {user_id}")
-            return {"ok": True} # Ignorar silenciosamente
+        # 🔒 SEGURIDAD: Whitelist Check - DISABLED (XONA es para clientes públicos)
+        # if user_id != TELEGRAM_OWNER_ID:
+        #     logger.warning(f"⛔ Intento de acceso no autorizado: {user_id}")
+        #     return {"ok": True} # Ignorar silenciosamente
 
         # Detectar Idioma (básico)
         lang_code = msg["from"].get("language_code", "en")
