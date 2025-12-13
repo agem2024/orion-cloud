@@ -80,17 +80,17 @@ async def telegram_webhook(req: Request):
             text_lower = text.lower().strip()
             
             # /start - Todos
-            if text == "/start":
+            if text_lower.startswith("/start"):
                 if is_owner:
                     response_text = f"🚀 *ORION CLOUD ONLINE*\n👑 Owner Mode: ACTIVADO\nID: {user_id}\n\n*Comandos especiales:*\n/status - Estado del sistema\n/stats - Estadísticas\n\nO escribe cualquier cosa para hablar con XONA."
                 else:
                     response_text = f"👋 *¡Hola! Soy XONA*, asistente de ORION Tech.\n\n¿En qué puedo ayudarte hoy?\n\n📱 WhatsApp: (669) 234-2444\n🌐 Servicios de IA y Automatización"
             
             # Comandos especiales - SOLO OWNER
-            elif text_lower == "/status" and is_owner:
+            elif text_lower.startswith("/status") and is_owner:
                 response_text = "🟢 *ORION CLOUD STATUS*\n\n✅ Brain: Online\n✅ Webhook: Active\n✅ API: Running\n\n🌐 https://orion-cloud.onrender.com"
             
-            elif text_lower == "/stats" and is_owner:
+            elif text_lower.startswith("/stats") and is_owner:
                 response_text = "📊 *ESTADÍSTICAS*\n\n🤖 Sistema: XONA v2.0\n☁️ Host: Render\n🧠 IA: Gemini/OpenAI\n\n_Stats detalladas próximamente_"
             
             # Cualquier otro texto - XONA responde a TODOS
