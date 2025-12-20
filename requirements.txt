@@ -3,5 +3,5 @@ uvicorn[standard]
 httpx
 python-multipart
 openai
-google-generativeai
+google-genai>=1.0.0
 python-dotenv

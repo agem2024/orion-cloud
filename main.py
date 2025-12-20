@@ -29,6 +29,37 @@ BASE_URL = os.getenv("BASE_URL")
 # Inicializar Cerebro
 brain = OrionBrain()
 
+# ============ URLS ACTUALIZADAS (Clonadas de orion-clean) ============
+MANUAL_URL = 'https://agem2024.github.io/SEGURITI-USC/ORION_MANUAL_PROFESIONAL.html'
+PRICEBOOK_URL = 'https://agem2024.github.io/SEGURITI-USC/pricebook-index.html'
+ORIONBOTS_URL = 'https://agem2024.github.io/SEGURITI-USC/orion-bots.html'
+CV_URL = 'https://agem2024.github.io/SEGURITI-USC/cv_pro.html'
+CV2_URL = 'https://agem2024.github.io/SEGURITI-USC/cv_professional.html'
+CARD_URL = 'https://agem2024.github.io/SEGURITI-USC/card.html'
+NEONHUB_URL = 'https://neon-agent-hub.web.app/'
+
+# ORION APPS (Mode App Links)
+ORION_APPS = [
+    'https://ai.studio/apps/drive/1vikKncwaJRxWOANGeEcnchTAM96CqmnZ?fullscreenApplet=true',
+    'https://ai.studio/apps/drive/1bMGhzGDqLL_aDfnSC78Ie_HnsF7b691I?fullscreenApplet=true',
+    'https://ai.studio/apps/drive/1BKOJ2-29twcjdG1BooF6-Nh82VpXm6Hi?fullscreenApplet=true',
+    'https://ai.studio/apps/drive/1x_ibj0UepSYSNZyv6w83UQCk2GFTjJvG?fullscreenApplet=true',
+    'https://ai.studio/apps/drive/1BF2Sl5I48Zh843mnJQAo_mrQLLDUd48J?fullscreenApplet=true',
+    'https://ai.studio/apps/drive/1u71t_S_8Cp27aEuUcT0Sffws8tEVQ2pw?fullscreenApplet=true',
+    'https://ai.studio/apps/drive/1k_9YBvyIRIWIrSEZuIzoHRSH5Qauhpd_?fullscreenApplet=true',
+    'https://ai.studio/apps/drive/1NNlIz45X8Pr8waX5P5p90CHzJ5uJv2WN?fullscreenApplet=true'
+]
+
+# INDUSTRY PAGES
+INDUSTRY_URLS = {
+    'restaurant': 'https://agem2024.github.io/SEGURITI-USC/industry-restaurant.html',
+    'salon': 'https://agem2024.github.io/SEGURITI-USC/industry-salon.html',
+    'liquor': 'https://agem2024.github.io/SEGURITI-USC/industry-liquor.html',
+    'contractor': 'https://agem2024.github.io/SEGURITI-USC/industry-contractor.html',
+    'retail': 'https://agem2024.github.io/SEGURITI-USC/industry-retail.html',
+    'enterprise': 'https://agem2024.github.io/SEGURITI-USC/industry-enterprise.html',
+}
+
 def get_tts_url(text: str, lang: str = "es") -> str:
     """Genera URL de Google TTS (fallback)"""
     text_encoded = quote(text[:200])
@@ -52,7 +83,7 @@ async def get_openai_tts(text: str) -> bytes:
 
 @app.get("/")
 def health():
-    return {"status": "ok", "system": "ORION CLOUD v3 - Full Commands"}
+    return {"status": "ok", "system": "ORION CLOUD v4 - Full Commands (Synced with orion-clean)"}
 
 # ============ WEB CHAT API ============
 @app.post("/api/chat")
@@ -105,25 +136,34 @@ async def telegram_webhook(req: Request):
         # ============ /START ============
         if text_lower.startswith("/start"):
             if is_owner:
-                menu = """🚀 *ORION CLOUD v3 ONLINE*
+                menu = """🚀 *ORION CLOUD v4 ONLINE*
 👑 Owner Mode: ACTIVADO
 
 *📖 COMANDOS DISPONIBLES:*
 
 *🔗 Accesos:*
 /acutor - Manual ORION
-/pb - Price Book
-/apps - Orion Apps
-/otp - Orion Bots
+/pb - Price Book v6.0 PRO
+/apps - Orion Apps (8 links)
+/otp - Landing Orion Bots
 
 *💼 Profesional:*
-/cv - CV profesional
-/tj - Tarjeta digital
+/cv - CV Principal
+/cv2 - CV Profesional Extendido
+/tj - Tarjeta Digital
 /skills - Skills técnicas
-/landing - Landing page
+/landing - Neon Hub
+
+*🏢 Industrias:*
+/restaurant - Restaurantes
+/salon - Salones de Belleza  
+/liquor - Licoreras
+/contractor - Contratistas
+/retail - Retail
+/enterprise - Enterprise
 
 *🎤 Voz & IA:*
-/say [texto] - Texto a voz
+/say [texto] - Texto a voz HD
 /orvoz [texto] - IA + voz
 /tr [texto] a [idioma] - Traducir
 
@@ -132,10 +172,10 @@ async def telegram_webhook(req: Request):
 /stats - Estadísticas
 /ayuda - Ver comandos
 
-_Escribe cualquier cosa para hablar con CHONA_"""
+_Escribe cualquier cosa para hablar con XONA_"""
                 await send_telegram_message(chat_id, menu)
             else:
-                await send_telegram_message(chat_id, "👋 *¡Hola parce! Soy CHONA*, asistente de ORION Tech.\n\n¿En qué puedo ayudarte?\n\n📱 WhatsApp: (669) 234-2444\n🌐 Servicios de IA y Automatización")
+                await send_telegram_message(chat_id, "👋 *¡Hola! Soy XONA*, asistente de ORION Tech.\n\n¿En qué puedo ayudarte?\n\n📱 WhatsApp: (669) 234-2444\n🌐 Servicios de IA y Automatización")
             return {"ok": True}
         
         # ============ VOZ TTS (OpenAI Natural) ============
@@ -183,67 +223,80 @@ _Escribe cualquier cosa para hablar con CHONA_"""
                 await send_telegram_message(chat_id, "❌ Uso: /tr [texto] a [idioma]\nEj: /tr hello a español")
             return {"ok": True}
         
-        # ============ ACCESOS DIRECTOS ============
+        # ============ ACCESOS DIRECTOS (Actualizados) ============
         if text_lower.startswith("/acutor") or text_lower.startswith("/manual"):
-            await send_telegram_message(chat_id, "📖 *MANUAL ORION SYSTEM*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/ORION_MANUAL_PROFESIONAL.html\n\n✅ Manual Completo - Guárdalo!")
+            await send_telegram_message(chat_id, f"📖 *MANUAL ORION SYSTEM*\n\n🔗 {MANUAL_URL}\n\n✅ Manual Completo - Guárdalo!")
             return {"ok": True}
         
         if text_lower.startswith("/pb") or text_lower == "pricebook":
-            await send_telegram_message(chat_id, "💰 *PRICE BOOK v6.0 PRO*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/pricebook.html\n\n✅ 100 Servicios\n💵 Precios: Estándar/Miembro/Emergencia\n🎯 Sistema Good/Better/Best")
+            await send_telegram_message(chat_id, f"💰 *PRICE BOOK v6.0 PRO*\n\n🔗 {PRICEBOOK_URL}\n\n✅ 100+ Servicios\n💵 Precios: Estándar/Miembro/Emergencia\n🎯 Sistema Good/Better/Best\n📐 Metodología de Cálculo")
             return {"ok": True}
         
         if text_lower.startswith("/apps") or text_lower == "links":
-            await send_telegram_message(chat_id, "🔗 *ORION APPS*\n\n1️⃣ https://ai.studio/apps/drive/1vikKncwaJRxWOANGeEcnchTAM96CqmnZ\n2️⃣ https://ai.studio/apps/drive/1bMGhzGDqLL_aDfnSC78Ie_HnsF7b691I\n3️⃣ https://ai.studio/apps/drive/1BKOJ2-29twcjdG1BooF6-Nh82VpXm6Hi\n\n_Modo App habilitado_")
+            msg = "🔗 *ORION APPS (Modo App)*\n\n"
+            for i, link in enumerate(ORION_APPS, 1):
+                msg += f"*App {i}:*\n{link}\n\n"
+            await send_telegram_message(chat_id, msg)
             return {"ok": True}
         
         if text_lower.startswith("/otp"):
-            await send_telegram_message(chat_id, "🤖 *ORION TECH PRODUCTS*\n\n📋 *Industrias:*\n• /restaurant - Restaurantes\n• /salon - Salones\n• /liquor - Licoreras\n• /contractor - Contratistas\n• /retail - Retail\n• /enterprise - Enterprise\n\n🔗 https://agem2024.github.io/SEGURITI-USC/orion-bots.html")
+            await send_telegram_message(chat_id, f"🤖 *ORION TECH PRODUCTS*\n\n📋 *Industrias:*\n• /restaurant - Restaurantes\n• /salon - Salones\n• /liquor - Licoreras\n• /contractor - Contratistas\n• /retail - Retail\n• /enterprise - Enterprise\n\n🔗 {ORIONBOTS_URL}")
             return {"ok": True}
         
         # ============ INDUSTRIAS ============
         if text_lower.startswith("/restaurant"):
-            await send_telegram_message(chat_id, "🍽️ *RESTAURANTES*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/industry-restaurant.html")
+            await send_telegram_message(chat_id, f"🍽️ *RESTAURANTES*\n\n🔗 {INDUSTRY_URLS['restaurant']}")
             return {"ok": True}
         if text_lower.startswith("/salon"):
-            await send_telegram_message(chat_id, "💇 *SALONES DE BELLEZA*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/industry-salon.html")
+            await send_telegram_message(chat_id, f"💇 *SALONES DE BELLEZA*\n\n🔗 {INDUSTRY_URLS['salon']}")
             return {"ok": True}
         if text_lower.startswith("/liquor"):
-            await send_telegram_message(chat_id, "🍷 *LICORERAS*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/industry-liquor.html")
+            await send_telegram_message(chat_id, f"🍷 *LICORERAS*\n\n🔗 {INDUSTRY_URLS['liquor']}")
             return {"ok": True}
         if text_lower.startswith("/contractor"):
-            await send_telegram_message(chat_id, "🔧 *CONTRATISTAS*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/industry-contractor.html")
+            await send_telegram_message(chat_id, f"🔧 *CONTRATISTAS*\n\n🔗 {INDUSTRY_URLS['contractor']}")
             return {"ok": True}
         if text_lower.startswith("/retail"):
-            await send_telegram_message(chat_id, "🛒 *RETAIL*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/industry-retail.html")
+            await send_telegram_message(chat_id, f"🛒 *RETAIL*\n\n🔗 {INDUSTRY_URLS['retail']}")
             return {"ok": True}
         if text_lower.startswith("/enterprise"):
-            await send_telegram_message(chat_id, "🏢 *ENTERPRISE*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/industry-enterprise.html")
+            await send_telegram_message(chat_id, f"🏢 *ENTERPRISE*\n\n🔗 {INDUSTRY_URLS['enterprise']}")
             return {"ok": True}
         
-        # ============ PROFESIONAL (orden importante: cv2 antes de cv) ============
+        # ============ PROFESIONAL (CV, TJ, Skills) ============
         if text_lower.startswith("/cv2"):
-            await send_telegram_message(chat_id, "📄 *CV VERSIÓN 2*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/cv_professional.html\n\n👤 Alex G. Espinosa\n🎯 Versión Profesional Extendida")
+            await send_telegram_message(chat_id, f"📄 *CV VERSIÓN 2 (Profesional)*\n\n✨ Formato ATS-friendly con logros\n📊 21+ años experiencia\n🔗 {CV2_URL}")
             return {"ok": True}
         
         if text_lower.startswith("/cv"):
-            await send_telegram_message(chat_id, "📄 *CV PROFESIONAL*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/cv_pro.html\n\n👤 Alex G. Espinosa\n🎯 AI Architect | 21+ años experiencia\n\n_Usa /cv2 para versión extendida_")
+            await send_telegram_message(chat_id, f"📄 *CV PROFESIONAL*\n\n🔗 {CV_URL}\n\n👤 Alex G. Espinosa\n🎯 AI Architect | 21+ años experiencia\n\n_Usa /cv2 para versión extendida_")
             return {"ok": True}
         
         if text_lower.startswith("/tj") or text_lower.startswith("/card"):
-            await send_telegram_message(chat_id, "💼 *TARJETA DIGITAL*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/card.html\n\n📱 Contacto profesional digital")
+            await send_telegram_message(chat_id, f"💼 *TARJETA DIGITAL*\n\n🔗 {CARD_URL}\n\n📱 Contacto profesional digital")
             return {"ok": True}
         
         if text_lower.startswith("/skills"):
-            await send_telegram_message(chat_id, "🛠️ *SKILLS TÉCNICAS*\n\n• Python, JavaScript, Node.js\n• AI/ML (Gemini, OpenAI, LangChain)\n• WhatsApp Automation (Baileys)\n• Cloud (Firebase, Render, Vercel)\n• 21+ años ingeniería")
+            await send_telegram_message(chat_id, """🛠️ *SKILLS TÉCNICAS*
+
+🤖 *AI & DEV:*
+• Multi-Agent Systems (Orion)
+• Generative AI (Gemini, GPT-4, Claude)
+• Node.js, Python, WhatsApp Automation
+
+🏗️ *INGENIERÍA:*
+• Diseño Hidráulico & Sanitario
+• Estimación de Costos & Presupuestos
+• Auditoría ISO 14001
+
+💼 *MANAGEMENT:*
+• Liderazgo de Equipos
+• Gestión de Proyectos Complejos
+• Consultoría Estratégica""")
             return {"ok": True}
         
         if text_lower.startswith("/landing"):
-            await send_telegram_message(chat_id, "🌐 *LANDING PAGE ORION TECH*\n\n🔗 https://agem2024.github.io/SEGURITI-USC/orion-bots.html\n\n🚀 Servicios de IA y Automatización")
-            return {"ok": True}
-        
-        # ============ CALENDARIO (básico por ahora) ============
-        if text_lower.startswith("/cal") or text_lower.startswith("/calendario"):
-            await send_telegram_message(chat_id, "📅 *CALENDARIO*\n\n⏰ Función de calendario en desarrollo para cloud.\n\n_El calendario completo está disponible en ORION local (WhatsApp)_")
+            await send_telegram_message(chat_id, f"🌐 *NEON AGENT HUB*\n\nAcceso global a tus agentes:\n🔗 {NEONHUB_URL}")
             return {"ok": True}
         
         # ============ SISTEMA (SOLO OWNER) ============
@@ -252,7 +305,7 @@ _Escribe cualquier cosa para hablar con CHONA_"""
             return {"ok": True}
         
         if text_lower.startswith("/stats") and is_owner:
-            await send_telegram_message(chat_id, "📊 *ESTADÍSTICAS*\n\n🤖 Sistema: XONA v3.0\n☁️ Host: Render\n🧠 IA: Gemini/OpenAI\n🎤 TTS: Google\n\n_Bot 100% Cloud_")
+            await send_telegram_message(chat_id, "📊 *ESTADÍSTICAS*\n\n🤖 Sistema: XONA v4.0\n☁️ Host: Render\n🧠 IA: OpenAI/Gemini\n🎤 TTS: OpenAI HD\n\n_Bot 100% Cloud_")
             return {"ok": True}
         
         if text_lower.startswith("/ayuda") or text_lower == "help" or text_lower == "?":
@@ -260,8 +313,8 @@ _Escribe cualquier cosa para hablar con CHONA_"""
 
 *📖 Accesos:*
 /acutor - Manual ORION
-/pb - Price Book
-/apps - Orion Apps
+/pb - Price Book v6.0 PRO
+/apps - Orion Apps (8 links)
 /otp - Productos por industria
 
 *🏢 Industrias:*
@@ -273,21 +326,18 @@ _Escribe cualquier cosa para hablar con CHONA_"""
 /cv2 - CV Extendido
 /tj - Tarjeta Digital
 /skills - Skills
-/landing - Landing Page
+/landing - Neon Hub
 
 *🎤 Voz & IA:*
 /say [texto] - Texto a voz HD
 /orvoz [texto] - IA + voz
 /tr [texto] a [idioma] - Traducir
 
-*📅 Productividad:*
-/cal - Calendario
-
 *🔧 Sistema (Owner):*
 /status - Estado
 /stats - Estadísticas
 
-_Escribe cualquier pregunta para CHONA_"""
+_Escribe cualquier pregunta para XONA_"""
             await send_telegram_message(chat_id, ayuda)
             return {"ok": True}
         
@@ -328,7 +378,7 @@ from fastapi import Form
 from fastapi.responses import Response
 
 # System prompts para voz
-VOICE_PROMPT_ES = """Eres CHONA (se escribe XONA), asistente telefónica de ORION Tech.
+VOICE_PROMPT_ES = """Eres XONA (se escribe XONA pero se pronuncia CHONA), asistente telefónica de ORION Tech.
 Hablas español paisa colombiano - cálido y amigable.
 Respuestas CORTAS (máx 2 oraciones).
 Servicios: Bots WhatsApp, IA para negocios.
@@ -397,7 +447,7 @@ async def select_language(Digits: str = Form(None)):
         # Spanish selected
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Mia">¡Hola parce! Soy CHONA, asistente de ORION Tech. ¿En qué te puedo ayudar?</Say>
+    <Say language="es-MX" voice="Polly.Mia">¡Hola parce! Soy XONA, asistente de ORION Tech. ¿En qué te puedo ayudar?</Say>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
     <Say language="es-MX">No escuché nada. Hasta luego.</Say>
 </Response>'''
@@ -418,7 +468,7 @@ async def incoming_call_es():
     base_url = os.getenv("BASE_URL", "https://orion-cloud.onrender.com")
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Mia">Hola parce, soy CHONA, asistente de ORION Tech. ¿En qué te puedo ayudar?</Say>
+    <Say language="es-MX" voice="Polly.Mia">Hola parce, soy XONA, asistente de ORION Tech. ¿En qué te puedo ayudar?</Say>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
     <Say language="es-MX">No escuché nada. Hasta luego.</Say>
 </Response>'''
