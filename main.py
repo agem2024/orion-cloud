@@ -103,6 +103,45 @@ async def web_chat(request: Request):
         logger.error(f"Web chat error: {e}")
         return {"response": "Error processing request.", "error": True}
 
+# ============ REALTIME API TOKEN ============
+@app.post("/api/realtime-token")
+async def realtime_token(request: Request):
+    """Genera token efímero para OpenAI Realtime API WebRTC"""
+    try:
+        data = await request.json() if request.headers.get("content-type") == "application/json" else {}
+        config = data.get("config", {})
+        
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.openai.com/v1/realtime/sessions",
+                headers={
+                    "Authorization": f"Bearer {os.getenv('OPENAI_API_KEY')}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": config.get("model", "gpt-4o-realtime-preview"),
+                    "voice": config.get("voice", "shimmer"),
+                    "instructions": config.get("instructions", """Eres XONA (pronunciado "CHO-nah"), asistente de ventas AI de ORION Tech.
+Hablas español paisa colombiano - cálido, amigable, profesional.
+Respuestas CORTAS (máximo 2 oraciones).
+Servicios: Bots WhatsApp con IA, automatización para negocios.
+Precios: Individual $297-$497, Salones $997, Restaurantes $1,497, Enterprise $4,997+
+Contacto: WhatsApp (669) 234-2444""")
+                }
+            )
+            
+            if response.status_code != 200:
+                logger.error(f"Realtime token error: {response.text}")
+                return {"error": "Failed to generate token"}
+            
+            token_data = response.json()
+            logger.info("🎤 Realtime token generated")
+            return token_data
+            
+    except Exception as e:
+        logger.error(f"Realtime token error: {e}")
+        return {"error": str(e)}
+
 @app.post(f"/webhook/{TELEGRAM_TOKEN}")
 async def telegram_webhook(req: Request):
     """Endpoint principal para recibir updates de Telegram"""
