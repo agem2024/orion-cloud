@@ -3,8 +3,10 @@ import httpx
 import asyncio
 
 # Configura estas variables ANTES de correr el script
-TOKEN = "8572298959:AAGR3Q9ohwJaK38EadeYQ0jVCXxb7VTTlb0"
-RENDER_URL = "https://orion-cloud.onrender.com"
+# ⚠️ Token debe estar en variable de entorno TELEGRAM_BOT_TOKEN en Render
+import os
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "TU_TOKEN_AQUI")
+RENDER_URL = os.getenv("BASE_URL", "https://orion-cloud.onrender.com")
 
 async def set_webhook():
     url = f"https://api.telegram.org/bot{TOKEN}/setWebhook"
