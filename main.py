@@ -92,16 +92,18 @@ async def web_chat(request: Request):
     try:
         data = await request.json()
         message = data.get("message", "")
-        lang = data.get("lang", "en")
+        lang = data.get("lang", "es")  # Default: español
         
         if not message:
-            return {"response": "Please send a message.", "error": True}
+            error_msg = "Por favor envía un mensaje." if lang == "es" else "Please send a message."
+            return {"response": error_msg, "error": True}
         
         response = brain.get_response(message, "web_user", lang)
         return {"response": response, "error": False}
     except Exception as e:
         logger.error(f"Web chat error: {e}")
-        return {"response": "Error processing request.", "error": True}
+        error_msg = "Error procesando la solicitud." if lang == "es" else "Error processing request."
+        return {"response": error_msg, "error": True}
 
 @app.post(f"/webhook/{TELEGRAM_TOKEN}")
 async def telegram_webhook(req: Request):
