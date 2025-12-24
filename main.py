@@ -85,6 +85,30 @@ async def get_openai_tts(text: str) -> bytes:
 def health():
     return {"status": "ok", "system": "ORION CLOUD v4 - Full Commands (Synced with orion-clean)"}
 
+# ============ TTS API FOR WEB ============
+@app.post("/api/tts")
+async def api_tts(request: Request):
+    """TTS endpoint for web chatbot - works on all devices"""
+    from fastapi.responses import Response
+    try:
+        data = await request.json()
+        text = data.get("text", "")
+        lang = data.get("lang", "es")
+        
+        if not text:
+            return Response(content=b"", media_type="audio/mpeg")
+        
+        # Use OpenAI TTS
+        audio_bytes = await get_openai_tts(text)
+        if audio_bytes:
+            return Response(content=audio_bytes, media_type="audio/mpeg")
+        else:
+            # Fallback: return empty audio
+            return Response(content=b"", media_type="audio/mpeg")
+    except Exception as e:
+        logger.error(f"TTS API error: {e}")
+        return Response(content=b"", media_type="audio/mpeg")
+
 # ============ WEB CHAT API ============
 @app.post("/api/chat")
 async def web_chat(request: Request):
