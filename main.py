@@ -405,19 +405,19 @@ async def send_telegram_voice_bytes(chat_id: int, audio_bytes: bytes):
 from fastapi import Form
 from fastapi.responses import Response
 
-# System prompts para voz
-VOICE_PROMPT_ES = """Eres XONA (se escribe XONA pero se pronuncia CHONA), asistente telefónica de ORION Tech.
-Hablas español paisa colombiano - cálido y amigable.
-Respuestas CORTAS (máx 2 oraciones).
-Servicios: Bots WhatsApp, IA para negocios.
-Paquetes: Individual $297, Starter $997, Business $1,997, Enterprise $4,997+
+# System prompts para voz - BRUNO masculino elegante
+VOICE_PROMPT_ES = """Eres BRUNO, asistente telefónico ejecutivo de ORION Tech.
+Voz masculina elegante, acento paisa colombiano refinado.
+Respondes en MÁXIMO 2 oraciones cortas.
+Servicios: Bots WhatsApp con IA para negocios.
+Paquetes desde $297 USD/mes.
 Contacto: WhatsApp (669) 234-2444"""
 
-VOICE_PROMPT_EN = """You are XONA (pronounced "ZOH-nah"), phone assistant for ORION Tech.
-California accent - friendly and professional.
-SHORT responses (max 2 sentences).
-Services: WhatsApp bots, AI for businesses.
-Packages: Individual $297, Starter $997, Business $1,997, Enterprise $4,997+
+VOICE_PROMPT_EN = """You are BRUNO, executive phone assistant for ORION Tech.
+Male voice, California professional accent - confident and friendly.
+Respond in MAX 2 short sentences.
+Services: WhatsApp bots with AI for businesses.
+Packages from $297 USD/month.
 Contact: WhatsApp (669) 234-2444"""
 
 def ask_voice_ai(user_input: str, lang: str = "es") -> str:
@@ -441,7 +441,7 @@ def ask_voice_ai(user_input: str, lang: str = "es") -> str:
 
 @app.get("/voice")
 def voice_status():
-    return {"status": "ok", "service": "XONA Voice Server", "endpoints": ["/incoming-call", "/incoming-call-en", "/incoming-call-es"]}
+    return {"status": "ok", "service": "BRUNO Voice Server", "endpoints": ["/incoming-call", "/incoming-call-en", "/incoming-call-es"]}
 
 @app.api_route("/incoming-call", methods=["GET", "POST"])
 async def incoming_call_menu():
@@ -450,8 +450,8 @@ async def incoming_call_menu():
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Gather numDigits="1" action="{base_url}/select-language" method="POST" timeout="5">
-        <Say language="en-US" voice="Polly.Joanna">Welcome to ORION Tech. Press 1 for English.</Say>
-        <Say language="es-MX" voice="Polly.Mia">Bienvenido a ORION Tech. Presione 2 para español.</Say>
+        <Say language="en-US" voice="Polly.Matthew">Welcome to ORION Tech. Press 1 for English.</Say>
+        <Say language="es-MX" voice="Polly.Miguel">Bienvenido a ORION Tech. Presione 2 para español.</Say>
     </Gather>
     <Say language="en-US">We didn't receive a response. Goodbye.</Say>
     <Say language="es-MX">No recibimos respuesta. Hasta luego.</Say>
@@ -467,7 +467,7 @@ async def select_language(Digits: str = Form(None)):
         # English selected
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="en-US" voice="Polly.Joanna">Hello! I'm XONA, assistant for ORION Tech. How can I help you?</Say>
+    <Say language="en-US" voice="Polly.Matthew">Hello! I'm BRUNO, assistant for ORION Tech. How can I help you?</Say>
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
     <Say language="en-US">I didn't hear anything. Goodbye.</Say>
 </Response>'''
@@ -475,7 +475,7 @@ async def select_language(Digits: str = Form(None)):
         # Spanish selected
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Mia">¡Hola parce! Soy XONA, asistente de ORION Tech. ¿En qué te puedo ayudar?</Say>
+    <Say language="es-MX" voice="Polly.Miguel">¡Hola parce! Soy BRUNO, asistente de ORION Tech. ¿En qué te puedo ayudar?</Say>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
     <Say language="es-MX">No escuché nada. Hasta luego.</Say>
 </Response>'''
@@ -496,7 +496,7 @@ async def incoming_call_es():
     base_url = os.getenv("BASE_URL", "https://orion-cloud.onrender.com")
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Mia">Hola parce, soy XONA, asistente de ORION Tech. ¿En qué te puedo ayudar?</Say>
+    <Say language="es-MX" voice="Polly.Miguel">Hola parce, Soy BRUNO, asistente de ORION Tech. ¿En qué te puedo ayudar?</Say>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
     <Say language="es-MX">No escuché nada. Hasta luego.</Say>
 </Response>'''
@@ -513,22 +513,22 @@ async def process_speech_es(SpeechResult: str = Form(None)):
         goodbye = ["adiós", "adios", "bye", "chao", "gracias", "ok gracias"]
         if any(w in SpeechResult.lower() for w in goodbye):
             twiml = '''<?xml version="1.0" encoding="UTF-8"?>
-<Response><Say language="es-MX" voice="Polly.Mia">Fue un placer parce. ¡Hasta luego!</Say></Response>'''
+<Response><Say language="es-MX" voice="Polly.Miguel">Fue un placer parce. ¡Hasta luego!</Say></Response>'''
             return Response(content=twiml, media_type="application/xml")
         
         ai_response = ask_voice_ai(SpeechResult, "es")
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Mia">{ai_response}</Say>
+    <Say language="es-MX" voice="Polly.Miguel">{ai_response}</Say>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="es-MX" voice="Polly.Mia">¿Algo más?</Say>
+    <Say language="es-MX" voice="Polly.Miguel">¿Algo más?</Say>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
     <Say language="es-MX">Bueno, hasta luego.</Say>
 </Response>'''
     else:
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Mia">No te escuché. ¿Puedes repetir?</Say>
+    <Say language="es-MX" voice="Polly.Miguel">No te escuché. ¿Puedes repetir?</Say>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
@@ -539,7 +539,7 @@ async def incoming_call_en():
     base_url = os.getenv("BASE_URL", "https://orion-cloud.onrender.com")
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="en-US" voice="Polly.Joanna">Hello! I'm XONA, assistant for ORION Tech. How can I help you?</Say>
+    <Say language="en-US" voice="Polly.Matthew">Hello! I'm BRUNO, assistant for ORION Tech. How can I help you?</Say>
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
     <Say language="en-US">I didn't hear anything. Goodbye.</Say>
 </Response>'''
@@ -556,22 +556,22 @@ async def process_speech_en(SpeechResult: str = Form(None)):
         goodbye = ["goodbye", "bye", "thanks", "thank you", "that's all"]
         if any(w in SpeechResult.lower() for w in goodbye):
             twiml = '''<?xml version="1.0" encoding="UTF-8"?>
-<Response><Say language="en-US" voice="Polly.Joanna">It was a pleasure. Goodbye!</Say></Response>'''
+<Response><Say language="en-US" voice="Polly.Matthew">It was a pleasure. Goodbye!</Say></Response>'''
             return Response(content=twiml, media_type="application/xml")
         
         ai_response = ask_voice_ai(SpeechResult, "en")
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="en-US" voice="Polly.Joanna">{ai_response}</Say>
+    <Say language="en-US" voice="Polly.Matthew">{ai_response}</Say>
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="en-US" voice="Polly.Joanna">Anything else?</Say>
+    <Say language="en-US" voice="Polly.Matthew">Anything else?</Say>
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
     <Say language="en-US">Alright, goodbye.</Say>
 </Response>'''
     else:
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="en-US" voice="Polly.Joanna">I didn't hear you. Can you repeat?</Say>
+    <Say language="en-US" voice="Polly.Matthew">I didn't hear you. Can you repeat?</Say>
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
