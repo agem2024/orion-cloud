@@ -405,12 +405,17 @@ async def send_telegram_voice_bytes(chat_id: int, audio_bytes: bytes):
 from fastapi import Form
 from fastapi.responses import Response
 
-# System prompts para voz - BRUNO masculino elegante
+# System prompts para voz - BRUNO masculino elegante CON AGENDAMIENTO
 VOICE_PROMPT_ES = """Eres BRUNO, asistente telefónico ejecutivo de ORION Tech.
 Voz masculina elegante, acento paisa colombiano refinado.
 Respondes en MÁXIMO 2 oraciones cortas.
 Servicios: Bots WhatsApp con IA para negocios.
 Paquetes desde $297 USD/mes.
+
+PARA AGENDAR CITAS:
+- Si el cliente quiere agendar, pregunta: nombre, teléfono, y mejor horario.
+- Responde: "Perfecto, agendado. Le confirmaremos por WhatsApp."
+
 Contacto: WhatsApp (669) 234-2444"""
 
 VOICE_PROMPT_EN = """You are BRUNO, executive phone assistant for ORION Tech.
@@ -418,13 +423,93 @@ Male voice, California professional accent - confident and friendly.
 Respond in MAX 2 short sentences.
 Services: WhatsApp bots with AI for businesses.
 Packages from $297 USD/month.
+
+FOR SCHEDULING:
+- If client wants to schedule, ask: name, phone, and best time.
+- Respond: "Perfect, scheduled. We'll confirm via WhatsApp."
+
 Contact: WhatsApp (669) 234-2444"""
 
-def ask_voice_ai(user_input: str, lang: str = "es") -> str:
-    """Get AI response for voice calls"""
+# Archivo compartido de citas (accesible por todos los bots)
+APPOINTMENTS_FILE = "/tmp/orion_appointments.json"
+
+def save_appointment(name: str, phone: str, time_slot: str, source: str = "phone"):
+    """Guarda cita en archivo JSON compartido"""
+    import json
+    from datetime import datetime
+    
+    try:
+        appointments = []
+        if os.path.exists(APPOINTMENTS_FILE):
+            with open(APPOINTMENTS_FILE, 'r') as f:
+                appointments = json.load(f)
+        
+        appointment = {
+            "id": len(appointments) + 1,
+            "name": name,
+            "phone": phone,
+            "time_slot": time_slot,
+            "source": source,
+            "created_at": datetime.now().isoformat(),
+            "confirmed": False
+        }
+        appointments.append(appointment)
+        
+        with open(APPOINTMENTS_FILE, 'w') as f:
+            json.dump(appointments, f, indent=2)
+        
+        logger.info(f"📅 Cita guardada: {name} - {phone} - {time_slot}")
+        return True
+    except Exception as e:
+        logger.error(f"Error guardando cita: {e}")
+        return False
+
+def extract_appointment_info(text: str, lang: str = "es") -> dict:
+    """Usa IA para extraer info de cita del texto"""
     try:
         import openai
         client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        
+        prompt = f"""Extract appointment info from this text. Return JSON only:
+{{"name": "client name or null", "phone": "phone number or null", "time": "preferred time or null", "wants_appointment": true/false}}
+
+Text: "{text}"
+JSON:"""
+        
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=100
+        )
+        
+        import json
+        result = json.loads(response.choices[0].message.content.strip())
+        return result
+    except:
+        return {"wants_appointment": False}
+
+def ask_voice_ai(user_input: str, lang: str = "es") -> str:
+    """Get AI response for voice calls - with appointment detection"""
+    try:
+        import openai
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        
+        # Check if user wants to schedule
+        appointment_info = extract_appointment_info(user_input, lang)
+        
+        if appointment_info.get("wants_appointment") and appointment_info.get("name") and appointment_info.get("phone"):
+            # Save appointment
+            save_appointment(
+                appointment_info.get("name", "Cliente"),
+                appointment_info.get("phone", ""),
+                appointment_info.get("time", "Por confirmar"),
+                "phone_call"
+            )
+            if lang == "es":
+                return "Perfecto, he agendado su cita. Le confirmaremos por WhatsApp al número proporcionado."
+            else:
+                return "Perfect, I've scheduled your appointment. We'll confirm via WhatsApp to the number provided."
+        
         system_msg = VOICE_PROMPT_ES if lang == "es" else VOICE_PROMPT_EN
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -438,6 +523,20 @@ def ask_voice_ai(user_input: str, lang: str = "es") -> str:
     except Exception as e:
         logger.error(f"Voice AI error: {e}")
         return "Sorry, technical issue." if lang == "en" else "Perdona, problema técnico."
+
+# API endpoint para ver citas (accesible por otros bots)
+@app.get("/api/appointments")
+def get_appointments():
+    """Endpoint para que otros bots lean las citas"""
+    import json
+    try:
+        if os.path.exists(APPOINTMENTS_FILE):
+            with open(APPOINTMENTS_FILE, 'r') as f:
+                return {"appointments": json.load(f)}
+        return {"appointments": []}
+    except:
+        return {"appointments": [], "error": "Could not read appointments"}
+
 
 @app.get("/voice")
 def voice_status():
