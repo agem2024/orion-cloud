@@ -65,16 +65,18 @@ def get_tts_url(text: str, lang: str = "es") -> str:
     text_encoded = quote(text[:200])
     return f"https://translate.google.com/translate_tts?ie=UTF-8&q={text_encoded}&tl={lang}&client=tw-ob"
 
-async def get_openai_tts(text: str) -> bytes:
-    """Genera audio con OpenAI TTS HD (voz natural de alta calidad)"""
+async def get_openai_tts(text: str, lang: str = "es") -> bytes:
+    """Genera audio con OpenAI TTS HD - Voz masculina natural"""
     try:
         import openai
         client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        # Voces masculinas: onyx (California cool), echo (elegante)
+        voice = "onyx" if lang == "en" else "echo"  # onyx=California, echo=elegante paisa
         response = client.audio.speech.create(
             model="tts-1-hd",  # HD = Alta definición, más natural
-            voice="shimmer",   # shimmer = voz femenina cálida y natural
+            voice=voice,
             input=text[:4096],
-            speed=1.0  # Velocidad normal
+            speed=1.0
         )
         return response.content
     except Exception as e:
@@ -201,14 +203,14 @@ async def telegram_webhook(req: Request):
 _Escribe cualquier cosa para hablar con XONA_"""
                 await send_telegram_message(chat_id, menu)
             else:
-                await send_telegram_message(chat_id, "👋 *¡Hola! Soy XONA*, asistente de ORION Tech.\n\n¿En qué puedo ayudarte?\n\n📱 WhatsApp: (669) 234-2444\n🌐 Servicios de IA y Automatización")
+                await send_telegram_message(chat_id, "👋 *¡Hola! Soy BRUNO*, asistente ejecutivo de ORION Tech.\n\n¿En qué puedo ayudarle?\n\n📱 WhatsApp: (669) 234-2444\n🌐 Servicios de IA y Automatización")
             return {"ok": True}
         
         # ============ VOZ TTS (OpenAI Natural) ============
         if text_lower.startswith("/say ") or text_lower.startswith("/di "):
             phrase = re.sub(r'^/(say|di)\s+', '', text, flags=re.IGNORECASE).strip()
             if phrase:
-                audio_bytes = await get_openai_tts(phrase)
+                audio_bytes = await get_openai_tts(phrase, lang)
                 if audio_bytes:
                     await send_telegram_voice_bytes(chat_id, audio_bytes)
                 else:
@@ -226,7 +228,7 @@ _Escribe cualquier cosa para hablar con XONA_"""
                 await send_telegram_message(chat_id, "🤖🎙️ Procesando con voz natural...")
                 response = brain.get_response(query, str(user_id), lang)
                 await send_telegram_message(chat_id, response)
-                audio_bytes = await get_openai_tts(response)
+                audio_bytes = await get_openai_tts(response, lang)
                 if audio_bytes:
                     await send_telegram_voice_bytes(chat_id, audio_bytes)
                 else:
