@@ -103,7 +103,13 @@ async def api_tts(request: Request):
         # Use OpenAI TTS
         audio_bytes = await get_openai_tts(text)
         if audio_bytes:
-            return Response(content=audio_bytes, media_type="audio/mpeg")
+            # Add proper headers to avoid Range request errors
+            headers = {
+                "Content-Length": str(len(audio_bytes)),
+                "Accept-Ranges": "none",  # Disable range requests
+                "Cache-Control": "no-cache"
+            }
+            return Response(content=audio_bytes, media_type="audio/mpeg", headers=headers)
         else:
             # Fallback: return empty audio
             return Response(content=b"", media_type="audio/mpeg")
