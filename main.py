@@ -32,7 +32,7 @@ brain = OrionBrain()
 # ============ URLS ACTUALIZADAS (Clonadas de orion-clean) ============
 MANUAL_URL = 'https://agem2024.github.io/SEGURITI-USC/ORION_MANUAL_PROFESIONAL.html'
 PRICEBOOK_URL = 'https://agem2024.github.io/SEGURITI-USC/pricebook-index.html'
-ORIONBOTS_URL = 'https://agem2024.github.io/SEGURITI-USC/orion-bots.html'
+ORIONBOTS_URL = 'https://agem2024.github.io/ORION-/'
 CV_URL = 'https://agem2024.github.io/SEGURITI-USC/cv_pro.html'
 CV2_URL = 'https://agem2024.github.io/SEGURITI-USC/cv_professional.html'
 CARD_URL = 'https://agem2024.github.io/SEGURITI-USC/card.html'
