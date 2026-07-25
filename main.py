@@ -300,7 +300,7 @@ _Escribe cualquier cosa para hablar con XONA_"""
         # ============ PROFESIONAL (CV, TJ, Skills) ============
         if text_lower == "/mp" or text_lower == "mp":
             # Enviamos texto con el link de la tarjeta digital para que Telegram genere el preview
-            mp_text = "🔧 *MORALES PLUMBING*
+            mp_text = """🔧 *MORALES PLUMBING*
 AI-INTEGRATED SERVICES
 
 Lic. C-36 #1156542 | San Jose, CA
@@ -309,7 +309,7 @@ Lic. C-36 #1156542 | San Jose, CA
 🌐 www.moralesplumbing.com
 
 🪪 *Tarjeta Digital:*
-https://agem2024.github.io/morales-plumbing-web/tarjeta_presentacion.html"
+https://agem2024.github.io/morales-plumbing-web/tarjeta_presentacion.html"""
             await send_telegram_message(chat_id, mp_text)
             return {"ok": True}
             
