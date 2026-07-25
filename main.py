@@ -309,7 +309,7 @@ Lic. C-36 #1156542 | San Jose, CA
 🌐 www.moralesplumbing.com
 
 🪪 *Tarjeta Digital:*
-https://agem2024.github.io/morales-plumbing-web/tarjeta_presentacion.html"""
+[Click aquí para abrir la tarjeta digital](https://agem2024.github.io/morales-plumbing-web/tarjeta_presentacion.html)"""
             await send_telegram_message(chat_id, mp_text)
             return {"ok": True}
             
