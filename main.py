@@ -299,8 +299,8 @@ _Escribe cualquier cosa para hablar con XONA_"""
         
         # ============ PROFESIONAL (CV, TJ, Skills) ============
         if text_lower == "/mp" or text_lower == "mp":
-            # Enviamos texto con el link de la tarjeta digital para que Telegram genere el preview
-            mp_text = """🔧 *MORALES PLUMBING*
+            # Enviamos texto con el link de la tarjeta digital usando HTML parse_mode para evitar errores de Markdown
+            mp_text = """🔧 <b>MORALES PLUMBING</b>
 AI-INTEGRATED SERVICES
 
 Lic. C-36 #1156542 | San Jose, CA
@@ -308,9 +308,12 @@ Lic. C-36 #1156542 | San Jose, CA
 📧 moralesplumbing026@gmail.com
 🌐 www.moralesplumbing.com
 
-🪪 *Tarjeta Digital:*
-[Click aquí para abrir la tarjeta digital](https://agem2024.github.io/morales-plumbing-web/tarjeta_presentacion.html)"""
-            await send_telegram_message(chat_id, mp_text)
+🪪 <b>Tarjeta Digital:</b>
+<a href="https://agem2024.github.io/morales-plumbing-web/tarjeta_presentacion.html">Click aquí para abrir la tarjeta digital</a>"""
+            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+            payload = {"chat_id": chat_id, "text": mp_text, "parse_mode": "HTML"}
+            async with httpx.AsyncClient() as client:
+                await client.post(url, json=payload)
             return {"ok": True}
             
         if text_lower == "/r1" or text_lower == "r1":
