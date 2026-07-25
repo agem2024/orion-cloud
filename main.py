@@ -302,7 +302,7 @@ _Escribe cualquier cosa para hablar con XONA_"""
             mp_text = "🛠️ *MORALES PLUMBING*\nAI-INTEGRATED SERVICES\n\nLic. C-36 #1156542 | San Jose, CA\n📞 (669) 234-2444\n📧 moralesplumbing026@gmail.com\n🌐 www.moralesplumbing.com"
             url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
             # Usando la imagen logo_portada.png
-            img_url = "https://agem2024.github.io/SEGURITI-USC/logo_portada.png"
+            img_url = "https://agem2024.github.io/SEGURITI-USC/docs/proposals/logo_portada.png"
             payload = {"chat_id": chat_id, "photo": img_url, "caption": mp_text, "parse_mode": "Markdown"}
             async with httpx.AsyncClient() as client:
                 res = await client.post(url, json=payload)
