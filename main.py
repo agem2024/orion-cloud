@@ -300,18 +300,17 @@ _Escribe cualquier cosa para hablar con XONA_"""
         # ============ PROFESIONAL (CV, TJ, Skills) ============
         if text_lower == "/mp" or text_lower == "mp":
             mp_text = "🛠️ *MORALES PLUMBING*\nAI-INTEGRATED SERVICES\n\nLic. C-36 #1156542 | San Jose, CA\n📞 (669) 234-2444\n📧 moralesplumbing026@gmail.com\n🌐 www.moralesplumbing.com"
-            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendPhoto"
-            img_url = "https://raw.githubusercontent.com/agem2024/ORION-/main/public/images/tarjeta_mp.png"
-            payload = {"chat_id": chat_id, "photo": img_url, "caption": mp_text, "parse_mode": "Markdown"}
-            async with httpx.AsyncClient() as client:
-                res = await client.post(url, json=payload)
-                if res.status_code != 200:
-                    await send_telegram_message(chat_id, mp_text)
+            # Solo enviamos el texto para evitar la imagen del código de barras
+            await send_telegram_message(chat_id, mp_text)
             return {"ok": True}
             
         if text_lower == "/r1" or text_lower == "r1":
-            r1_msg = "📄 *Propuestas - 538 Leigh Ave*\n\n1️⃣ *Reparación:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/propuesta_reparacion_538_leigh.html\n\n2️⃣ *Opción B:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/propuesta_opcion_b_538_leigh.html\n\n3️⃣ *ADU Tankless:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/propuesta_adu_tankless_rodrigo.html\n\n⚖️ *Términos Legales:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/propuesta_lega_538_leigh.html"
-            await send_telegram_message(chat_id, r1_msg)
+            r1_msg = "📄 Propuestas - 538 Leigh Ave\n\n1️⃣ Reparación:\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/propuesta_reparacion_538_leigh.html\n\n2️⃣ Opción B:\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/propuesta_opcion_b_538_leigh.html\n\n3️⃣ ADU Tankless:\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/propuesta_adu_tankless_rodrigo.html\n\n⚖️ Términos Legales:\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/propuesta_lega_538_leigh.html"
+            # Enviamos sin Markdown para evitar que los guiones bajos (_) rompan el bot
+            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+            payload = {"chat_id": chat_id, "text": r1_msg}
+            async with httpx.AsyncClient() as client:
+                await client.post(url, json=payload)
             return {"ok": True}
 
         if text_lower.startswith("/cv2"):
