@@ -178,6 +178,7 @@ async def telegram_webhook(req: Request):
 *🔗 Accesos:*
 /acutor - Manual ORION
 /pb - Price Book v6.0 PRO
+/ld - Generador Legal (Morales Plumbing)
 /apps - Orion Apps (8 links)
 /otp - Landing Orion Bots
 
@@ -264,6 +265,22 @@ _Escribe cualquier cosa para hablar con XONA_"""
         
         if text_lower.startswith("/pb") or text_lower == "pricebook":
             await send_telegram_message(chat_id, f"💰 *PRICE BOOK v6.0 PRO*\n\n🔗 {PRICEBOOK_URL}\n\n✅ 100+ Servicios\n💵 Precios: Estándar/Miembro/Emergencia\n🎯 Sistema Good/Better/Best\n📐 Metodología de Cálculo")
+            return {"ok": True}
+            
+        if text_lower.startswith("/ld") or text_lower.startswith("/legaldocs") or text_lower.startswith("/contrato") or text_lower.startswith("/factura"):
+            msg_ld = f"""⚖️ *MORALES PLUMBING - GENERADOR LEGAL & CONTRATOS*
+
+Plataforma oficial para generar, firmar y consultar contratos, facturas, recibos y órdenes de trabajo.
+
+🌐 *Enlace Directo:* https://morales-plumbing-web.web.app/
+
+📌 *Licencia CSLB:* C-36 #1156542 | San Jose, CA
+📞 *Teléfono:* (669) 234-2444
+📧 *Email:* moralesplumbing026@gmail.com
+
+💡 *Para abrir un documento guardado:* Usa el formato:
+`https://morales-plumbing-web.web.app/?docId=ID_DEL_DOC`"""
+            await send_telegram_message(chat_id, msg_ld)
             return {"ok": True}
         
         if text_lower.startswith("/apps") or text_lower == "links":
