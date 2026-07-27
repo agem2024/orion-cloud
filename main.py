@@ -353,8 +353,8 @@ Lic. C-36 #1156542 | San Jose, CA
             
         if text_lower == "/j1" or text_lower == "j1":
             mensajes_j1 = [
-                "📄 *Propuestas - Joan Wrabetz*\n\n1️⃣ *Instalación Lavabo Doble:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/lavy_installation_proposal.html",
-                "2️⃣ *Actualización Tankless:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/water_heater_update_o_replace.html"
+                "📄 *Propuestas - Joan Wrabetz*\n\n1️⃣ *Instalación Lavabo Doble:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/lavy_installation_proposal.html?v=2",
+                "2️⃣ *Actualización Tankless:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/water_heater_update_o_replace.html?v=2"
             ]
             
             url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
