@@ -350,6 +350,20 @@ Lic. C-36 #1156542 | San Jose, CA
                     await client.post(url, json=payload)
                     
             return {"ok": True}
+            
+        if text_lower == "/j1" or text_lower == "j1":
+            mensajes_j1 = [
+                "📄 *Propuestas - Joan Wrabetz*\n\n1️⃣ *Instalación Lavabo Doble:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/lavy_installation_proposal.html",
+                "2️⃣ *Actualización Tankless:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/water_heater_update_o_replace.html"
+            ]
+            
+            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+            async with httpx.AsyncClient() as client:
+                for msg in mensajes_j1:
+                    payload = {"chat_id": chat_id, "text": msg}
+                    await client.post(url, json=payload)
+                    
+            return {"ok": True}
 
         if text_lower.startswith("/cv2"):
             await send_telegram_message(chat_id, f"📄 *CV VERSIÓN 2 (Profesional)*\n\n✨ Formato ATS-friendly con logros\n📊 21+ años experiencia\n🔗 {CV2_URL}")
