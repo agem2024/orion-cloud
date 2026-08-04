@@ -19,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("ORION_CLOUD")
+logger = logging.getLogger("Morales Plumbing_CLOUD")
 
 # Variables de Entorno
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -30,16 +30,16 @@ BASE_URL = os.getenv("BASE_URL")
 brain = OrionBrain()
 
 # ============ URLS ACTUALIZADAS (Clonadas de orion-clean) ============
-MANUAL_URL = 'https://agem2024.github.io/SEGURITI-USC/ORION_MANUAL_PROFESIONAL.html'
+MANUAL_URL = 'https://agem2024.github.io/SEGURITI-USC/Morales Plumbing_MANUAL_PROFESIONAL.html'
 PRICEBOOK_URL = 'https://agem2024.github.io/SEGURITI-USC/pricebook-index.html'
-ORIONBOTS_URL = 'https://agem2024.github.io/ORION-/'
+Morales PlumbingBOTS_URL = 'https://agem2024.github.io/Morales Plumbing-/'
 CV_URL = 'https://agem2024.github.io/SEGURITI-USC/cv_pro.html'
 CV2_URL = 'https://agem2024.github.io/SEGURITI-USC/cv_professional.html'
 CARD_URL = 'https://agem2024.github.io/SEGURITI-USC/card.html'
 NEONHUB_URL = 'https://neon-agent-hub.web.app/'
 
-# ORION APPS (Mode App Links)
-ORION_APPS = [
+# Morales Plumbing APPS (Mode App Links)
+Morales Plumbing_APPS = [
     'https://ai.studio/apps/drive/1vikKncwaJRxWOANGeEcnchTAM96CqmnZ?fullscreenApplet=true',
     'https://ai.studio/apps/drive/1bMGhzGDqLL_aDfnSC78Ie_HnsF7b691I?fullscreenApplet=true',
     'https://ai.studio/apps/drive/1BKOJ2-29twcjdG1BooF6-Nh82VpXm6Hi?fullscreenApplet=true',
@@ -85,7 +85,7 @@ async def get_openai_tts(text: str, lang: str = "es") -> bytes:
 
 @app.get("/")
 def health():
-    return {"status": "ok", "system": "ORION CLOUD v4 - Full Commands (Synced with orion-clean)"}
+    return {"status": "ok", "system": "Morales Plumbing CLOUD v4 - Full Commands (Synced with orion-clean)"}
 
 # ============ TTS API FOR WEB ============
 @app.post("/api/tts")
@@ -170,13 +170,13 @@ async def telegram_webhook(req: Request):
         # ============ /START ============
         if text_lower.startswith("/start"):
             if is_owner:
-                menu = """🚀 *ORION CLOUD v4 ONLINE*
+                menu = """🚀 *Morales Plumbing CLOUD v4 ONLINE*
 👑 Owner Mode: ACTIVADO
 
 *📖 COMANDOS DISPONIBLES:*
 
 *🔗 Accesos:*
-/acutor - Manual ORION
+/acutor - Manual Morales Plumbing
 /pb - Price Book v6.0 PRO
 /ld - Generador Legal (Morales Plumbing)
 /apps - Orion Apps (8 links)
@@ -210,7 +210,7 @@ async def telegram_webhook(req: Request):
 _Escribe cualquier cosa para hablar con XONA_"""
                 await send_telegram_message(chat_id, menu)
             else:
-                await send_telegram_message(chat_id, "👋 *¡Hola! Soy BRUNO*, asistente ejecutivo de ORION Tech.\n\n¿En qué puedo ayudarle?\n\n📱 WhatsApp: (669) 234-2444\n🌐 Servicios de IA y Automatización")
+                await send_telegram_message(chat_id, "👋 *¡Hola! Soy Alex*, asistente ejecutivo de Morales Plumbing.\n\n¿En qué puedo ayudarle?\n\n📱 WhatsApp: (669) 213-4422\n🌐 Servicios de IA y Automatización")
             return {"ok": True}
         
         # ============ VOZ TTS (OpenAI Natural) ============
@@ -260,7 +260,7 @@ _Escribe cualquier cosa para hablar con XONA_"""
         
         # ============ ACCESOS DIRECTOS (Actualizados) ============
         if text_lower.startswith("/acutor") or text_lower.startswith("/manual"):
-            await send_telegram_message(chat_id, f"📖 *MANUAL ORION SYSTEM*\n\n🔗 {MANUAL_URL}\n\n✅ Manual Completo - Guárdalo!")
+            await send_telegram_message(chat_id, f"📖 *MANUAL Morales Plumbing SYSTEM*\n\n🔗 {MANUAL_URL}\n\n✅ Manual Completo - Guárdalo!")
             return {"ok": True}
         
         if text_lower.startswith("/pb") or text_lower == "pricebook":
@@ -275,7 +275,7 @@ Plataforma oficial para generar, firmar y consultar contratos, facturas, recibos
 🌐 *Enlace Directo:* https://morales-plumbing-web.web.app/
 
 📌 *Licencia CSLB:* C-36 #1156542 | San Jose, CA
-📞 *Teléfono:* (669) 234-2444
+📞 *Teléfono:* (669) 213-4422
 📧 *Email:* moralesplumbing026@gmail.com
 
 💡 *Para abrir un documento guardado:* Usa el formato:
@@ -284,14 +284,14 @@ Plataforma oficial para generar, firmar y consultar contratos, facturas, recibos
             return {"ok": True}
         
         if text_lower.startswith("/apps") or text_lower == "links":
-            msg = "🔗 *ORION APPS (Modo App)*\n\n"
-            for i, link in enumerate(ORION_APPS, 1):
+            msg = "🔗 *Morales Plumbing APPS (Modo App)*\n\n"
+            for i, link in enumerate(Morales Plumbing_APPS, 1):
                 msg += f"*App {i}:*\n{link}\n\n"
             await send_telegram_message(chat_id, msg)
             return {"ok": True}
         
         if text_lower.startswith("/otp"):
-            await send_telegram_message(chat_id, f"🤖 *ORION TECH PRODUCTS*\n\n📋 *Industrias:*\n• /restaurant - Restaurantes\n• /salon - Salones\n• /liquor - Licoreras\n• /contractor - Contratistas\n• /retail - Retail\n• /enterprise - Enterprise\n\n🔗 {ORIONBOTS_URL}")
+            await send_telegram_message(chat_id, f"🤖 *MORALES PLUMBING PRODUCTS*\n\n📋 *Industrias:*\n• /restaurant - Restaurantes\n• /salon - Salones\n• /liquor - Licoreras\n• /contractor - Contratistas\n• /retail - Retail\n• /enterprise - Enterprise\n\n🔗 {Morales PlumbingBOTS_URL}")
             return {"ok": True}
         
         # ============ INDUSTRIAS ============
@@ -321,7 +321,7 @@ Plataforma oficial para generar, firmar y consultar contratos, facturas, recibos
 AI-INTEGRATED SERVICES
 
 Lic. C-36 #1156542 | San Jose, CA
-📱 (669) 234-2444
+📱 (669) 213-4422
 📧 moralesplumbing026@gmail.com
 🌐 www.moralesplumbing.com
 
@@ -402,7 +402,7 @@ Lic. C-36 #1156542 | San Jose, CA
         
         # ============ SISTEMA (SOLO OWNER) ============
         if text_lower.startswith("/status") and is_owner:
-            await send_telegram_message(chat_id, "🟢 *ORION CLOUD STATUS*\n\n✅ Brain: Online\n✅ Webhook: Active\n✅ API: Running\n✅ TTS: Enabled\n\n🌐 https://orion-cloud.onrender.com")
+            await send_telegram_message(chat_id, "🟢 *Morales Plumbing CLOUD STATUS*\n\n✅ Brain: Online\n✅ Webhook: Active\n✅ API: Running\n✅ TTS: Enabled\n\n🌐 https://orion-cloud.onrender.com")
             return {"ok": True}
         
         if text_lower.startswith("/stats") and is_owner:
@@ -410,10 +410,10 @@ Lic. C-36 #1156542 | San Jose, CA
             return {"ok": True}
         
         if text_lower.startswith("/ayuda") or text_lower == "help" or text_lower == "?":
-            ayuda = """❓ *AYUDA ORION CLOUD v4*
+            ayuda = """❓ *AYUDA Morales Plumbing CLOUD v4*
 
 *📖 Accesos:*
-/acutor - Manual ORION
+/acutor - Manual Morales Plumbing
 /pb - Price Book v6.0 PRO
 /apps - Orion Apps (8 links)
 /otp - Productos por industria
@@ -478,8 +478,8 @@ async def send_telegram_voice_bytes(chat_id: int, audio_bytes: bytes):
 from fastapi import Form
 from fastapi.responses import Response
 
-# System prompts para voz - BRUNO masculino elegante CON AGENDAMIENTO
-VOICE_PROMPT_ES = """Eres BRUNO, asistente telefónico ejecutivo de ORION Tech.
+# System prompts para voz - Alex masculino elegante CON AGENDAMIENTO
+VOICE_PROMPT_ES = """Eres Alex, asistente telefónico ejecutivo de Morales Plumbing.
 Voz masculina elegante, acento paisa colombiano refinado.
 Respondes en MÁXIMO 2 oraciones cortas.
 Servicios: Bots WhatsApp con IA para negocios.
@@ -489,9 +489,9 @@ PARA AGENDAR CITAS:
 - Si el cliente quiere agendar, pregunta: nombre, teléfono, y mejor horario.
 - Responde: "Perfecto, agendado. Le confirmaremos por WhatsApp."
 
-Contacto: WhatsApp (669) 234-2444"""
+Contacto: WhatsApp (669) 213-4422"""
 
-VOICE_PROMPT_EN = """You are BRUNO, executive phone assistant for ORION Tech.
+VOICE_PROMPT_EN = """You are Alex, executive phone assistant for Morales Plumbing.
 Male voice, California professional accent - confident and friendly.
 Respond in MAX 2 short sentences.
 Services: WhatsApp bots with AI for businesses.
@@ -501,7 +501,7 @@ FOR SCHEDULING:
 - If client wants to schedule, ask: name, phone, and best time.
 - Respond: "Perfect, scheduled. We'll confirm via WhatsApp."
 
-Contact: WhatsApp (669) 234-2444"""
+Contact: WhatsApp (669) 213-4422"""
 
 # Archivo compartido de citas (accesible por todos los bots)
 APPOINTMENTS_FILE = "/tmp/orion_appointments.json"
@@ -613,7 +613,7 @@ def get_appointments():
 
 @app.get("/voice")
 def voice_status():
-    return {"status": "ok", "service": "BRUNO Voice Server", "endpoints": ["/incoming-call", "/incoming-call-en", "/incoming-call-es"]}
+    return {"status": "ok", "service": "Alex Voice Server", "endpoints": ["/incoming-call", "/incoming-call-en", "/incoming-call-es"]}
 
 @app.api_route("/incoming-call", methods=["GET", "POST"])
 async def incoming_call_menu():
@@ -622,8 +622,8 @@ async def incoming_call_menu():
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Gather numDigits="1" action="{base_url}/select-language" method="POST" timeout="5">
-        <Say language="en-US" voice="Polly.Matthew">Welcome to ORION Tech. Press 1 for English.</Say>
-        <Say language="es-MX" voice="Polly.Miguel">Bienvenido a ORION Tech. Presione 2 para español.</Say>
+        <Say language="en-US" voice="Polly.Matthew">Welcome to Morales Plumbing. Press 1 for English.</Say>
+        <Say language="es-MX" voice="Polly.Miguel">Bienvenido a Morales Plumbing. Presione 2 para español.</Say>
     </Gather>
     <Say language="en-US">We didn't receive a response. Goodbye.</Say>
     <Say language="es-MX">No recibimos respuesta. Hasta luego.</Say>
@@ -639,7 +639,7 @@ async def select_language(Digits: str = Form(None)):
         # English selected
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="en-US" voice="Polly.Matthew">Hello! I'm BRUNO, assistant for ORION Tech. How can I help you?</Say>
+    <Say language="en-US" voice="Polly.Matthew">Hello! I'm Alex, assistant for Morales Plumbing. How can I help you?</Say>
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
     <Say language="en-US">I didn't hear anything. Goodbye.</Say>
 </Response>'''
@@ -647,7 +647,7 @@ async def select_language(Digits: str = Form(None)):
         # Spanish selected
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Miguel">¡Hola parce! Soy BRUNO, asistente de ORION Tech. ¿En qué te puedo ayudar?</Say>
+    <Say language="es-MX" voice="Polly.Miguel">¡Hola parce! Soy Alex, asistente de Morales Plumbing. ¿En qué te puedo ayudar?</Say>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
     <Say language="es-MX">No escuché nada. Hasta luego.</Say>
 </Response>'''
@@ -668,7 +668,7 @@ async def incoming_call_es():
     base_url = os.getenv("BASE_URL", "https://orion-cloud.onrender.com")
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Miguel">Hola parce, Soy BRUNO, asistente de ORION Tech. ¿En qué te puedo ayudar?</Say>
+    <Say language="es-MX" voice="Polly.Miguel">Hola parce, Soy Alex, asistente de Morales Plumbing. ¿En qué te puedo ayudar?</Say>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
     <Say language="es-MX">No escuché nada. Hasta luego.</Say>
 </Response>'''
@@ -711,7 +711,7 @@ async def incoming_call_en():
     base_url = os.getenv("BASE_URL", "https://orion-cloud.onrender.com")
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="en-US" voice="Polly.Matthew">Hello! I'm BRUNO, assistant for ORION Tech. How can I help you?</Say>
+    <Say language="en-US" voice="Polly.Matthew">Hello! I'm Alex, assistant for Morales Plumbing. How can I help you?</Say>
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
     <Say language="en-US">I didn't hear anything. Goodbye.</Say>
 </Response>'''
