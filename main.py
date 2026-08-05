@@ -402,7 +402,7 @@ Lic. C-36 #1156542 | San Jose, CA
         
         # ============ SISTEMA (SOLO OWNER) ============
         if text_lower.startswith("/status") and is_owner:
-            await send_telegram_message(chat_id, "🟢 *Morales Plumbing CLOUD STATUS*\n\n✅ Brain: Online\n✅ Webhook: Active\n✅ API: Running\n✅ TTS: Enabled\n\n🌐 https://orion-cloud.onrender.com")
+            await send_telegram_message(chat_id, "🟢 *Morales Plumbing CLOUD STATUS*\n\n✅ Brain: Online\n✅ Webhook: Active\n✅ API: Running\n✅ TTS: Enabled\n\n🌐 https://orion-cloud-1.onrender.com")
             return {"ok": True}
         
         if text_lower.startswith("/stats") and is_owner:
@@ -618,7 +618,7 @@ def voice_status():
 @app.api_route("/incoming-call", methods=["GET", "POST"])
 async def incoming_call_menu():
     """Handle incoming call with language menu"""
-    base_url = os.getenv("BASE_URL", "https://orion-cloud.onrender.com")
+    base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Gather numDigits="1" action="{base_url}/select-language" method="POST" timeout="5">
@@ -633,7 +633,7 @@ async def incoming_call_menu():
 @app.api_route("/select-language", methods=["GET", "POST"])
 async def select_language(Digits: str = Form(None)):
     """Route to correct language based on selection"""
-    base_url = os.getenv("BASE_URL", "https://orion-cloud.onrender.com")
+    base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
     
     if Digits == "1":
         # English selected
@@ -665,7 +665,7 @@ async def select_language(Digits: str = Form(None)):
 @app.api_route("/incoming-call-es", methods=["GET", "POST"])
 async def incoming_call_es():
     """Handle incoming Spanish call (direct)"""
-    base_url = os.getenv("BASE_URL", "https://orion-cloud.onrender.com")
+    base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say language="es-MX" voice="Polly.Miguel">Hola parce, Soy Alex, asistente de Morales Plumbing. ¿En qué te puedo ayudar?</Say>
@@ -677,7 +677,7 @@ async def incoming_call_es():
 @app.api_route("/process-speech-es", methods=["GET", "POST"])
 async def process_speech_es(SpeechResult: str = Form(None)):
     """Process Spanish speech"""
-    base_url = os.getenv("BASE_URL", "https://orion-cloud.onrender.com")
+    base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
     
     if SpeechResult:
         logger.info(f"🎤 ES: {SpeechResult}")
@@ -708,7 +708,7 @@ async def process_speech_es(SpeechResult: str = Form(None)):
 @app.api_route("/incoming-call-en", methods=["GET", "POST"])
 async def incoming_call_en():
     """Handle incoming English call"""
-    base_url = os.getenv("BASE_URL", "https://orion-cloud.onrender.com")
+    base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Say language="en-US" voice="Polly.Matthew">Hello! I'm Alex, assistant for Morales Plumbing. How can I help you?</Say>
@@ -720,7 +720,7 @@ async def incoming_call_en():
 @app.api_route("/process-speech-en", methods=["GET", "POST"])
 async def process_speech_en(SpeechResult: str = Form(None)):
     """Process English speech"""
-    base_url = os.getenv("BASE_URL", "https://orion-cloud.onrender.com")
+    base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
     
     if SpeechResult:
         logger.info(f"🎤 EN: {SpeechResult}")
