@@ -32,14 +32,14 @@ brain = OrionBrain()
 # ============ URLS ACTUALIZADAS (Clonadas de orion-clean) ============
 MANUAL_URL = 'https://agem2024.github.io/SEGURITI-USC/Morales Plumbing_MANUAL_PROFESIONAL.html'
 PRICEBOOK_URL = 'https://agem2024.github.io/SEGURITI-USC/pricebook-index.html'
-Morales PlumbingBOTS_URL = 'https://agem2024.github.io/Morales Plumbing-/'
+MORALES_PLUMBING_BOTS_URL = 'https://agem2024.github.io/Morales_Plumbing/'
 CV_URL = 'https://agem2024.github.io/SEGURITI-USC/cv_pro.html'
 CV2_URL = 'https://agem2024.github.io/SEGURITI-USC/cv_professional.html'
 CARD_URL = 'https://agem2024.github.io/SEGURITI-USC/card.html'
 NEONHUB_URL = 'https://neon-agent-hub.web.app/'
 
 # Morales Plumbing APPS (Mode App Links)
-Morales Plumbing_APPS = [
+MORALES_PLUMBING_APPS = [
     'https://ai.studio/apps/drive/1vikKncwaJRxWOANGeEcnchTAM96CqmnZ?fullscreenApplet=true',
     'https://ai.studio/apps/drive/1bMGhzGDqLL_aDfnSC78Ie_HnsF7b691I?fullscreenApplet=true',
     'https://ai.studio/apps/drive/1BKOJ2-29twcjdG1BooF6-Nh82VpXm6Hi?fullscreenApplet=true',
@@ -285,13 +285,13 @@ Plataforma oficial para generar, firmar y consultar contratos, facturas, recibos
         
         if text_lower.startswith("/apps") or text_lower == "links":
             msg = "🔗 *Morales Plumbing APPS (Modo App)*\n\n"
-            for i, link in enumerate(Morales Plumbing_APPS, 1):
+            for i, link in enumerate(MORALES_PLUMBING_APPS, 1):
                 msg += f"*App {i}:*\n{link}\n\n"
             await send_telegram_message(chat_id, msg)
             return {"ok": True}
         
         if text_lower.startswith("/otp"):
-            await send_telegram_message(chat_id, f"🤖 *MORALES PLUMBING PRODUCTS*\n\n📋 *Industrias:*\n• /restaurant - Restaurantes\n• /salon - Salones\n• /liquor - Licoreras\n• /contractor - Contratistas\n• /retail - Retail\n• /enterprise - Enterprise\n\n🔗 {Morales PlumbingBOTS_URL}")
+            await send_telegram_message(chat_id, f"🤖 *MORALES PLUMBING PRODUCTS*\n\n📋 *Industrias:*\n• /restaurant - Restaurantes\n• /salon - Salones\n• /liquor - Licoreras\n• /contractor - Contratistas\n• /retail - Retail\n• /enterprise - Enterprise\n\n🔗 {MORALES_PLUMBING_BOTS_URL}")
             return {"ok": True}
         
         # ============ INDUSTRIAS ============
