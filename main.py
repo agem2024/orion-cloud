@@ -594,7 +594,14 @@ JSON:"""
         )
         
         import json
-        result = json.loads(response.choices[0].message.content.strip())
+        raw_json = response.choices[0].message.content.strip()
+        if raw_json.startswith('```json'):
+            raw_json = raw_json[7:]
+        if raw_json.startswith('```'):
+            raw_json = raw_json[3:]
+        if raw_json.endswith('```'):
+            raw_json = raw_json[:-3]
+        result = json.loads(raw_json.strip())
         return result
     except Exception as e:
         logger.error(f"Voice AI OpenAI extract error: {e}")
