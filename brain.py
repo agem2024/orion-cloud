@@ -112,7 +112,7 @@ class OrionBrain:
             try:
                 full_prompt = f"{system_prompt}\n\nUSER MESSAGE: {user_text}"
                 response = self.gemini_client.models.generate_content(
-                    model="gemini-2.0-flash",
+                    model="gemini-2.5-flash",
                     contents=full_prompt
                 )
                 return response.text

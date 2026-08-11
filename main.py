@@ -540,15 +540,15 @@ def save_appointment(name: str, phone: str, time_slot: str, source: str = "phone
 
 def extract_appointment_info(text: str, lang: str = "es") -> dict:
     """Usa IA para extraer info de cita del texto"""
-    try:
-        import openai
-        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        
-        prompt = f"""Extract appointment info from this text. Return JSON only:
+    prompt = f"""Extract appointment info from this text. Return JSON only:
 {{"name": "client name or null", "phone": "phone number or null", "time": "preferred time or null", "wants_appointment": true/false}}
 
 Text: "{text}"
 JSON:"""
+
+    try:
+        import openai
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         
         response = client.chat.completions.create(
             model="gpt-4o-mini",
@@ -559,32 +559,55 @@ JSON:"""
         import json
         result = json.loads(response.choices[0].message.content.strip())
         return result
-    except:
+    except Exception as e:
+        logger.error(f"Voice AI OpenAI extract error: {e}")
+        try:
+            if hasattr(brain, 'gemini_client') and brain.gemini_client:
+                gemini_response = brain.gemini_client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt
+                )
+                import json
+                
+                # Clean up Gemini response in case it returns markdown blocks
+                raw_json = gemini_response.text.strip()
+                if raw_json.startswith('```json'):
+                    raw_json = raw_json[7:]
+                if raw_json.startswith('```'):
+                    raw_json = raw_json[3:]
+                if raw_json.endswith('```'):
+                    raw_json = raw_json[:-3]
+                    
+                result = json.loads(raw_json.strip())
+                return result
+        except Exception as gemini_e:
+            logger.error(f"Voice AI Gemini extract error: {gemini_e}")
         return {"wants_appointment": False}
 
 def ask_voice_ai(user_input: str, lang: str = "es") -> str:
     """Get AI response for voice calls - with appointment detection"""
+    # Check if user wants to schedule
+    appointment_info = extract_appointment_info(user_input, lang)
+    
+    if appointment_info.get("wants_appointment") and appointment_info.get("name") and appointment_info.get("phone"):
+        # Save appointment and get code
+        code = save_appointment(
+            appointment_info.get("name", "Cliente"),
+            appointment_info.get("phone", ""),
+            appointment_info.get("time", "Por confirmar"),
+            "phone_call"
+        )
+        if lang == "es":
+            return f"Perfecto, he agendado su cita. Su código de confirmación es {code}. Le enviaremos los detalles por WhatsApp al número proporcionado."
+        else:
+            return f"Perfect, I've scheduled your appointment. Your confirmation code is {code}. We'll send the details via WhatsApp to the number provided."
+    
+    system_msg = VOICE_PROMPT_ES if lang == "es" else VOICE_PROMPT_EN
+    
     try:
         import openai
         client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         
-        # Check if user wants to schedule
-        appointment_info = extract_appointment_info(user_input, lang)
-        
-        if appointment_info.get("wants_appointment") and appointment_info.get("name") and appointment_info.get("phone"):
-            # Save appointment and get code
-            code = save_appointment(
-                appointment_info.get("name", "Cliente"),
-                appointment_info.get("phone", ""),
-                appointment_info.get("time", "Por confirmar"),
-                "phone_call"
-            )
-            if lang == "es":
-                return f"Perfecto, he agendado su cita. Su código de confirmación es {code}. Le enviaremos los detalles por WhatsApp al número proporcionado."
-            else:
-                return f"Perfect, I've scheduled your appointment. Your confirmation code is {code}. We'll send the details via WhatsApp to the number provided."
-        
-        system_msg = VOICE_PROMPT_ES if lang == "es" else VOICE_PROMPT_EN
         response = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[
@@ -595,7 +618,17 @@ def ask_voice_ai(user_input: str, lang: str = "es") -> str:
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
-        logger.error(f"Voice AI error: {e}")
+        logger.error(f"Voice AI OpenAI error: {e}")
+        try:
+            if hasattr(brain, 'gemini_client') and brain.gemini_client:
+                full_prompt = f"{system_msg}\n\nUSER MESSAGE: {user_input}"
+                gemini_response = brain.gemini_client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=full_prompt
+                )
+                return gemini_response.text.strip()
+        except Exception as gemini_e:
+            logger.error(f"Voice AI Gemini error: {gemini_e}")
         return "Sorry, technical issue." if lang == "en" else "Perdona, problema técnico."
 
 # API endpoint para ver citas (accesible por otros bots)
