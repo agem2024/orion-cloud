@@ -791,8 +791,9 @@ async def incoming_call_es():
     
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Play>{msg1}</Play>
-    <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
+    <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto">
+        <Play>{msg1}</Play>
+    </Gather>
     <Play>{msg2}</Play>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
@@ -820,18 +821,21 @@ async def process_speech_es(SpeechResult: str = Form(None)):
         
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    {play_ai}
-    <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
-    {play_more}
-    <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
+    <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto">
+        {play_ai}
+    </Gather>
+    <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto">
+        {play_more}
+    </Gather>
     {play_bye}
 </Response>'''
     else:
         msg = get_cached_tts_url("No le escuché. ¿Puede repetir?", "es", base_url)
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Play>{msg}</Play>
-    <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
+    <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto">
+        <Play>{msg}</Play>
+    </Gather>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
 
@@ -844,8 +848,9 @@ async def incoming_call_en():
     
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Play>{msg1}</Play>
-    <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
+    <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto">
+        <Play>{msg1}</Play>
+    </Gather>
     <Play>{msg2}</Play>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
@@ -873,17 +878,20 @@ async def process_speech_en(SpeechResult: str = Form(None)):
         
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    {play_ai}
-    <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
-    {play_more}
-    <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
+    <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto">
+        {play_ai}
+    </Gather>
+    <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto">
+        {play_more}
+    </Gather>
     {play_bye}
 </Response>'''
     else:
         msg = get_cached_tts_url("I didn't hear you. Can you repeat?", "en", base_url)
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Play>{msg}</Play>
-    <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
+    <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto">
+        <Play>{msg}</Play>
+    </Gather>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
