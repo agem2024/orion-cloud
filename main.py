@@ -518,7 +518,53 @@ When you have all 6, say: "Perfect, I've scheduled your appointment. We'll confi
 # Archivo compartido de citas (accesible por todos los bots)
 APPOINTMENTS_FILE = "/tmp/orion_appointments.json"
 
-def save_appointment(name: str, phone: str, email: str, address: str, status: str, diagnosis: str, materials: str, source: str = "phone") -> str:
+def create_calendar_event(name: str, phone: str, address: str, diagnosis: str, materials: str, is_emergency: bool, scheduled_time: str):
+    """Create a 2-hour event in Google Calendar"""
+    try:
+        SCOPES = ['https://www.googleapis.com/auth/calendar']
+        SERVICE_ACCOUNT_FILE = 'serviceAccountKey.json'
+        
+        if not os.path.exists(SERVICE_ACCOUNT_FILE):
+            logger.error("No serviceAccountKey.json found for Calendar API")
+            return
+            
+        creds = service_account.Credentials.from_service_account_file(
+                SERVICE_ACCOUNT_FILE, scopes=SCOPES)
+        service = build('calendar', 'v3', credentials=creds)
+        
+        # Calculate time windows
+        if is_emergency or scheduled_time.lower() == "asap":
+            start_time = datetime.utcnow()
+        else:
+            try:
+                # Try to parse ISO format if AI provided it, else fallback to now
+                start_time = datetime.fromisoformat(scheduled_time.replace('Z', '+00:00'))
+            except:
+                start_time = datetime.utcnow()
+                
+        end_time = start_time + timedelta(hours=2)
+        
+        event = {
+          'summary': f'{"EMERGENCIA: " if is_emergency else ""}{name} - Plomería',
+          'location': address,
+          'description': f'Teléfono: {phone}\nDiagnóstico: {diagnosis}\nMateriales sugeridos: {materials}',
+          'start': {
+            'dateTime': start_time.isoformat() + 'Z',
+            'timeZone': 'UTC',
+          },
+          'end': {
+            'dateTime': end_time.isoformat() + 'Z',
+            'timeZone': 'UTC',
+          },
+        }
+        
+        calendar_id = 'moralesplumbing026@gmail.com'
+        event_result = service.events().insert(calendarId=calendar_id, body=event).execute()
+        logger.info(f"Evento creado: {event_result.get('htmlLink')}")
+    except Exception as e:
+        logger.error(f"Error creando evento en Calendar: {e}")
+
+def save_appointment(name: str, phone: str, email: str, address: str, status: str, diagnosis: str, materials: str, is_emergency: bool, scheduled_time: str, source: str = "phone") -> str:
     """Guarda cita en archivo JSON compartido y retorna código MP-XXXX"""
     import json
     import random
@@ -547,6 +593,8 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
             "status": status,
             "diagnosis": diagnosis,
             "materials": materials,
+            "is_emergency": is_emergency,
+            "scheduled_time": scheduled_time,
             "source": source,
             "created_at": datetime.now().isoformat(),
             "confirmed": False
@@ -563,7 +611,8 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
             tg_token = os.getenv("TELEGRAM_BOT_TOKEN")
             tg_chat = os.getenv("TELEGRAM_OWNER_ID")
             if tg_token and tg_chat:
-                msg = f"NUEVA CITA (DISPATCHER)\n\nID: {code}\nNombre: {name}\nTeléfono: {phone}\nEmail: {email}\nDirección: {address}\nEstatus: {status}\n\nProblema: {diagnosis}\nMateriales Recomendados: {materials}"
+                tipo_t = "🚨 URGENCIA" if is_emergency else f"📅 {scheduled_time}"
+                msg = f"NUEVA CITA (DISPATCHER)\\n\\nID: {code}\\nTipo: {tipo_t}\\nNombre: {name}\\nTeléfono: {phone}\\nEmail: {email}\\nDirección: {address}\\nEstatus: {status}\\n\\nProblema: {diagnosis}\\nMateriales Recomendados: {materials}"
                 requests.post(f"https://api.telegram.org/bot{tg_token}/sendMessage", data={"chat_id": tg_chat, "text": msg})
         except Exception as e:
             logger.error(f"Error enviando Telegram: {e}")
@@ -609,7 +658,9 @@ Return JSON only:
   "status": "owner/renter/null",
   "diagnosis": "brief description of problem or null",
   "materials": "list of minimum recommended tools/materials for this job based on diagnosis, or null",
-  "is_complete": true/false (true ONLY if name, phone, email, address, status, and diagnosis are ALL present)
+  "is_emergency": true/false,
+  "scheduled_time": "ISO 8601 format date-time if scheduled, or 'ASAP' if emergency, or null",
+  "is_complete": true/false (true ONLY if name, phone, email, address, status, diagnosis, and scheduled_time/emergency are ALL present)
 }}
 
 Conversation History:
@@ -685,6 +736,8 @@ def ask_voice_ai(user_input: str, call_sid: str, lang: str = "es") -> str:
             status=appointment_info.get("status", "No provisto"),
             diagnosis=appointment_info.get("diagnosis", "Inspección General"),
             materials=appointment_info.get("materials", "Kit básico"),
+            is_emergency=appointment_info.get("is_emergency", False),
+            scheduled_time=appointment_info.get("scheduled_time", "ASAP"),
             source="phone_call"
         )
         
