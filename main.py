@@ -693,18 +693,60 @@ def get_appointments():
 def voice_status():
     return {"status": "ok", "service": "Alex Voice Server", "endpoints": ["/incoming-call", "/incoming-call-en", "/incoming-call-es"]}
 
+# ============ TTS CACHE & SERVE ============
+def get_cached_tts_url(text: str, lang: str, base_url: str) -> str:
+    import hashlib
+    import os
+    text_hash = hashlib.md5(text.encode('utf-8')).hexdigest()
+    filename = f"{lang}_{text_hash}.mp3"
+    audio_dir = "/tmp/audio"
+    os.makedirs(audio_dir, exist_ok=True)
+    filepath = os.path.join(audio_dir, filename)
+    
+    if not os.path.exists(filepath):
+        try:
+            import openai
+            client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+            voice = "nova" if lang == "es" else "shimmer"
+            response = client.audio.speech.create(
+                model="tts-1",
+                voice=voice,
+                input=text[:4096],
+                speed=1.0
+            )
+            response.stream_to_file(filepath)
+        except Exception as e:
+            logger.error(f"OpenAI TTS file error: {e}")
+            return ""
+            
+    return f"{base_url}/audio/{filename}"
+
+@app.get("/audio/{filename}")
+async def serve_audio(filename: str):
+    from fastapi.responses import FileResponse, Response
+    import os
+    filepath = f"/tmp/audio/{filename}"
+    if os.path.exists(filepath):
+        return FileResponse(filepath, media_type="audio/mpeg")
+    return Response(status_code=404)
+
 @app.api_route("/incoming-call", methods=["GET", "POST"])
 async def incoming_call_menu():
     """Handle incoming call with language menu"""
     base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
+    msg_en1 = get_cached_tts_url("Welcome to Morales Plumbing. Press 1 for English.", "en", base_url)
+    msg_es1 = get_cached_tts_url("Bienvenido a Morales Plumbing. Presione 2 para español.", "es", base_url)
+    msg_en2 = get_cached_tts_url("We didn't receive a response. Goodbye.", "en", base_url)
+    msg_es2 = get_cached_tts_url("No recibimos respuesta. Hasta luego.", "es", base_url)
+    
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Gather numDigits="1" action="{base_url}/select-language" method="POST" timeout="5">
-        <Say language="en-US" voice="Polly.Joanna">Welcome to Morales Plumbing. Press 1 for English.</Say>
-        <Say language="es-MX" voice="Polly.Mia">Bienvenido a Morales Plumbing. Presione 2 para español.</Say>
+        <Play>{msg_en1}</Play>
+        <Play>{msg_es1}</Play>
     </Gather>
-    <Say language="en-US" voice="Polly.Joanna">We didn't receive a response. Goodbye.</Say>
-    <Say language="es-MX" voice="Polly.Mia">No recibimos respuesta. Hasta luego.</Say>
+    <Play>{msg_en2}</Play>
+    <Play>{msg_es2}</Play>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
 
@@ -744,11 +786,14 @@ async def select_language(Digits: str = Form(None)):
 async def incoming_call_es():
     """Handle incoming Spanish call (direct)"""
     base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
+    msg1 = get_cached_tts_url("¡Hola! Soy Nekon, asistente de Morales Plumbing. ¿En qué le puedo ayudar?", "es", base_url)
+    msg2 = get_cached_tts_url("No escuché nada. Hasta luego.", "es", base_url)
+    
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Mia">¡Hola! Soy Nekon, asistente de Morales Plumbing. ¿En qué le puedo ayudar?</Say>
+    <Play>{msg1}</Play>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="es-MX" voice="Polly.Mia">No escuché nada. Hasta luego.</Say>
+    <Play>{msg2}</Play>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
 
@@ -762,23 +807,30 @@ async def process_speech_es(SpeechResult: str = Form(None)):
         
         goodbye = ["adiós", "adios", "bye", "chao", "gracias", "ok gracias"]
         if any(w in SpeechResult.lower() for w in goodbye):
-            twiml = '''<?xml version="1.0" encoding="UTF-8"?>
-<Response><Say language="es-MX" voice="Polly.Mia">Fue un placer. ¡Hasta luego!</Say></Response>'''
+            msg = get_cached_tts_url("Fue un placer. ¡Hasta luego!", "es", base_url)
+            twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<Response><Play>{msg}</Play></Response>'''
             return Response(content=twiml, media_type="application/xml")
         
         ai_response = ask_voice_ai(SpeechResult, "es")
+        audio_url = get_cached_tts_url(ai_response, "es", base_url)
+        play_ai = f"<Play>{audio_url}</Play>" if audio_url else f'<Say language="es-MX" voice="Polly.Mia">{ai_response}</Say>'
+        play_more = f"<Play>{get_cached_tts_url('¿Algo más?', 'es', base_url)}</Play>"
+        play_bye = f"<Play>{get_cached_tts_url('Bueno, hasta luego.', 'es', base_url)}</Play>"
+        
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Mia">{ai_response}</Say>
+    {play_ai}
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="es-MX" voice="Polly.Mia">¿Algo más?</Say>
+    {play_more}
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="es-MX" voice="Polly.Mia">Bueno, hasta luego.</Say>
+    {play_bye}
 </Response>'''
     else:
+        msg = get_cached_tts_url("No le escuché. ¿Puede repetir?", "es", base_url)
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Mia">No le escuché. ¿Puede repetir?</Say>
+    <Play>{msg}</Play>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
@@ -787,11 +839,14 @@ async def process_speech_es(SpeechResult: str = Form(None)):
 async def incoming_call_en():
     """Handle incoming English call"""
     base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
+    msg1 = get_cached_tts_url("Hello! I'm Nekon, assistant for Morales Plumbing. How can I help you?", "en", base_url)
+    msg2 = get_cached_tts_url("I didn't hear anything. Goodbye.", "en", base_url)
+    
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="en-US" voice="Polly.Joanna">Hello! I'm Nekon, assistant for Morales Plumbing. How can I help you?</Say>
+    <Play>{msg1}</Play>
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="en-US" voice="Polly.Joanna">I didn't hear anything. Goodbye.</Say>
+    <Play>{msg2}</Play>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
 
@@ -805,23 +860,30 @@ async def process_speech_en(SpeechResult: str = Form(None)):
         
         goodbye = ["goodbye", "bye", "thanks", "thank you", "that's all"]
         if any(w in SpeechResult.lower() for w in goodbye):
-            twiml = '''<?xml version="1.0" encoding="UTF-8"?>
-<Response><Say language="en-US" voice="Polly.Joanna">It was a pleasure. Goodbye!</Say></Response>'''
+            msg = get_cached_tts_url("It was a pleasure. Goodbye!", "en", base_url)
+            twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
+<Response><Play>{msg}</Play></Response>'''
             return Response(content=twiml, media_type="application/xml")
         
         ai_response = ask_voice_ai(SpeechResult, "en")
+        audio_url = get_cached_tts_url(ai_response, "en", base_url)
+        play_ai = f"<Play>{audio_url}</Play>" if audio_url else f'<Say language="en-US" voice="Polly.Joanna">{ai_response}</Say>'
+        play_more = f"<Play>{get_cached_tts_url('Anything else?', 'en', base_url)}</Play>"
+        play_bye = f"<Play>{get_cached_tts_url('Alright, goodbye.', 'en', base_url)}</Play>"
+        
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="en-US" voice="Polly.Joanna">{ai_response}</Say>
+    {play_ai}
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="en-US" voice="Polly.Joanna">Anything else?</Say>
+    {play_more}
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="en-US" voice="Polly.Joanna">Alright, goodbye.</Say>
+    {play_bye}
 </Response>'''
     else:
+        msg = get_cached_tts_url("I didn't hear you. Can you repeat?", "en", base_url)
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="en-US" voice="Polly.Joanna">I didn't hear you. Can you repeat?</Say>
+    <Play>{msg}</Play>
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
