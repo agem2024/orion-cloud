@@ -507,6 +507,10 @@ def save_appointment(name: str, phone: str, time_slot: str, source: str = "phone
     import json
     import random
     from datetime import datetime
+    import requests
+    import smtplib
+    from email.mime.text import MIMEText
+    from email.mime.multipart import MIMEMultipart
     
     try:
         appointments = []
@@ -533,6 +537,39 @@ def save_appointment(name: str, phone: str, time_slot: str, source: str = "phone
             json.dump(appointments, f, indent=2)
         
         logger.info(f"📅 Cita guardada: {name} - {phone} - {time_slot} (Código: {code})")
+
+        # Notificar por Telegram
+        try:
+            tg_token = os.getenv("TELEGRAM_BOT_TOKEN")
+            tg_chat = os.getenv("TELEGRAM_OWNER_ID")
+            if tg_token and tg_chat:
+                msg = f"NUEVA CITA (ORION BOT)\n\nID: {code}\nNombre: {name}\nTeléfono: {phone}\nHora: {time_slot}"
+                requests.post(f"https://api.telegram.org/bot{tg_token}/sendMessage", data={"chat_id": tg_chat, "text": msg})
+        except Exception as e:
+            logger.error(f"Error enviando Telegram: {e}")
+
+        # Notificar por Email
+        try:
+            email_user = os.getenv("EMAIL_USER")
+            email_pass = os.getenv("EMAIL_PASS")
+            if email_user and email_pass:
+                msg = MIMEMultipart()
+                msg['From'] = email_user
+                msg['To'] = email_user
+                msg['Subject'] = f"Nueva Cita - {name} ({code})"
+                
+                body = f"NUEVA CITA AGENDADA POR BOT TELEFÓNICO\n\nID: {code}\nNombre: {name}\nTeléfono: {phone}\nHora: {time_slot}\nOrigen: {source}"
+                msg.attach(MIMEText(body, 'plain'))
+                
+                server = smtplib.SMTP('smtp.gmail.com', 587)
+                server.starttls()
+                server.login(email_user, email_pass)
+                text = msg.as_string()
+                server.sendmail(email_user, email_user, text)
+                server.quit()
+        except Exception as e:
+            logger.error(f"Error enviando Email: {e}")
+
         return code
     except Exception as e:
         logger.error(f"Error guardando cita: {e}")
