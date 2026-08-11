@@ -169,9 +169,7 @@ async def telegram_webhook(req: Request):
         
         # ============ /START ============
         if text_lower.startswith("/start"):
-            if is_owner:
-                menu = """🚀 *Morales Plumbing CLOUD v4 ONLINE*
-👑 Owner Mode: ACTIVADO
+            menu = """🚀 *Morales Plumbing CLOUD v4 ONLINE*
 
 *📖 COMANDOS DISPONIBLES:*
 
@@ -207,10 +205,8 @@ async def telegram_webhook(req: Request):
 /stats - Estadísticas
 /ayuda - Ver comandos
 
-_Escribe cualquier cosa para hablar con XONA_"""
-                await send_telegram_message(chat_id, menu)
-            else:
-                await send_telegram_message(chat_id, "👋 *¡Hola! Soy Alex*, asistente ejecutivo de Morales Plumbing.\n\n¿En qué puedo ayudarle?\n\n📱 WhatsApp: (669) 213-4422\n🌐 Servicios de IA y Automatización")
+_Escribe cualquier cosa para hablar con Nekon_"""
+            await send_telegram_message(chat_id, menu)
             return {"ok": True}
         
         # ============ VOZ TTS (OpenAI Natural) ============
@@ -478,24 +474,24 @@ async def send_telegram_voice_bytes(chat_id: int, audio_bytes: bytes):
 from fastapi import Form
 from fastapi.responses import Response
 
-# System prompts para voz - Alex masculino elegante CON AGENDAMIENTO
-VOICE_PROMPT_ES = """Eres Alex, asistente telefónico ejecutivo de Morales Plumbing.
-Voz masculina elegante, acento paisa colombiano refinado.
+# System prompts para voz - Nekon femenino profesional CON AGENDAMIENTO
+VOICE_PROMPT_ES = """Eres Nekon, asistente telefónica ejecutiva de Morales Plumbing.
+Voz femenina profesional, clara y amable.
 Respondes en MÁXIMO 2 oraciones cortas.
-Servicios: Bots WhatsApp con IA para negocios.
-Paquetes desde $297 USD/mes.
+Servicios: Plomería profesional residencial y comercial. Horario 24/7.
+Regla: NO des precios por teléfono bajo ninguna circunstancia.
 
 PARA AGENDAR CITAS:
 - Si el cliente quiere agendar, pregunta: nombre, teléfono, y mejor horario.
-- Responde: "Perfecto, agendado. Le confirmaremos por WhatsApp."
+- Responde: "Perfecto, he agendado su cita. Le confirmaremos por WhatsApp."
 
 Contacto: WhatsApp (669) 213-4422"""
 
-VOICE_PROMPT_EN = """You are Alex, executive phone assistant for Morales Plumbing.
-Male voice, California professional accent - confident and friendly.
+VOICE_PROMPT_EN = """You are Nekon, executive phone assistant for Morales Plumbing.
+Professional female voice, clear and friendly.
 Respond in MAX 2 short sentences.
-Services: WhatsApp bots with AI for businesses.
-Packages from $297 USD/month.
+Services: Professional residential and commercial plumbing. Available 24/7.
+Rule: DO NOT give prices over the phone under any circumstances.
 
 FOR SCHEDULING:
 - If client wants to schedule, ask: name, phone, and best time.
@@ -506,9 +502,10 @@ Contact: WhatsApp (669) 213-4422"""
 # Archivo compartido de citas (accesible por todos los bots)
 APPOINTMENTS_FILE = "/tmp/orion_appointments.json"
 
-def save_appointment(name: str, phone: str, time_slot: str, source: str = "phone"):
-    """Guarda cita en archivo JSON compartido"""
+def save_appointment(name: str, phone: str, time_slot: str, source: str = "phone") -> str:
+    """Guarda cita en archivo JSON compartido y retorna código MP-XXXX"""
     import json
+    import random
     from datetime import datetime
     
     try:
@@ -517,8 +514,12 @@ def save_appointment(name: str, phone: str, time_slot: str, source: str = "phone
             with open(APPOINTMENTS_FILE, 'r') as f:
                 appointments = json.load(f)
         
+        # Generar código de confirmación MP-XXXX
+        code = f"MP-{random.randint(1000, 9999)}"
+        
         appointment = {
             "id": len(appointments) + 1,
+            "code": code,
             "name": name,
             "phone": phone,
             "time_slot": time_slot,
@@ -531,11 +532,11 @@ def save_appointment(name: str, phone: str, time_slot: str, source: str = "phone
         with open(APPOINTMENTS_FILE, 'w') as f:
             json.dump(appointments, f, indent=2)
         
-        logger.info(f"📅 Cita guardada: {name} - {phone} - {time_slot}")
-        return True
+        logger.info(f"📅 Cita guardada: {name} - {phone} - {time_slot} (Código: {code})")
+        return code
     except Exception as e:
         logger.error(f"Error guardando cita: {e}")
-        return False
+        return ""
 
 def extract_appointment_info(text: str, lang: str = "es") -> dict:
     """Usa IA para extraer info de cita del texto"""
@@ -571,17 +572,17 @@ def ask_voice_ai(user_input: str, lang: str = "es") -> str:
         appointment_info = extract_appointment_info(user_input, lang)
         
         if appointment_info.get("wants_appointment") and appointment_info.get("name") and appointment_info.get("phone"):
-            # Save appointment
-            save_appointment(
+            # Save appointment and get code
+            code = save_appointment(
                 appointment_info.get("name", "Cliente"),
                 appointment_info.get("phone", ""),
                 appointment_info.get("time", "Por confirmar"),
                 "phone_call"
             )
             if lang == "es":
-                return "Perfecto, he agendado su cita. Le confirmaremos por WhatsApp al número proporcionado."
+                return f"Perfecto, he agendado su cita. Su código de confirmación es {code}. Le enviaremos los detalles por WhatsApp al número proporcionado."
             else:
-                return "Perfect, I've scheduled your appointment. We'll confirm via WhatsApp to the number provided."
+                return f"Perfect, I've scheduled your appointment. Your confirmation code is {code}. We'll send the details via WhatsApp to the number provided."
         
         system_msg = VOICE_PROMPT_ES if lang == "es" else VOICE_PROMPT_EN
         response = client.chat.completions.create(
@@ -622,11 +623,11 @@ async def incoming_call_menu():
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
     <Gather numDigits="1" action="{base_url}/select-language" method="POST" timeout="5">
-        <Say language="en-US" voice="Polly.Matthew">Welcome to Morales Plumbing. Press 1 for English.</Say>
-        <Say language="es-MX" voice="Polly.Miguel">Bienvenido a Morales Plumbing. Presione 2 para español.</Say>
+        <Say language="en-US" voice="Polly.Joanna">Welcome to Morales Plumbing. Press 1 for English.</Say>
+        <Say language="es-MX" voice="Polly.Mia">Bienvenido a Morales Plumbing. Presione 2 para español.</Say>
     </Gather>
-    <Say language="en-US">We didn't receive a response. Goodbye.</Say>
-    <Say language="es-MX">No recibimos respuesta. Hasta luego.</Say>
+    <Say language="en-US" voice="Polly.Joanna">We didn't receive a response. Goodbye.</Say>
+    <Say language="es-MX" voice="Polly.Mia">No recibimos respuesta. Hasta luego.</Say>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
 
@@ -639,24 +640,24 @@ async def select_language(Digits: str = Form(None)):
         # English selected
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="en-US" voice="Polly.Matthew">Hello! I'm Alex, assistant for Morales Plumbing. How can I help you?</Say>
+    <Say language="en-US" voice="Polly.Joanna">Hello! I'm Nekon, assistant for Morales Plumbing. How can I help you?</Say>
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="en-US">I didn't hear anything. Goodbye.</Say>
+    <Say language="en-US" voice="Polly.Joanna">I didn't hear anything. Goodbye.</Say>
 </Response>'''
     elif Digits == "2":
         # Spanish selected
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Miguel">¡Hola parce! Soy Alex, asistente de Morales Plumbing. ¿En qué te puedo ayudar?</Say>
+    <Say language="es-MX" voice="Polly.Mia">¡Hola! Soy Nekon, asistente de Morales Plumbing. ¿En qué le puedo ayudar?</Say>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="es-MX">No escuché nada. Hasta luego.</Say>
+    <Say language="es-MX" voice="Polly.Mia">No escuché nada. Hasta luego.</Say>
 </Response>'''
     else:
         # Invalid option, retry
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="en-US">Invalid option.</Say>
-    <Say language="es-MX">Opción inválida.</Say>
+    <Say language="en-US" voice="Polly.Joanna">Invalid option.</Say>
+    <Say language="es-MX" voice="Polly.Mia">Opción inválida.</Say>
     <Redirect>{base_url}/incoming-call</Redirect>
 </Response>'''
     
@@ -668,9 +669,9 @@ async def incoming_call_es():
     base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Miguel">Hola parce, Soy Alex, asistente de Morales Plumbing. ¿En qué te puedo ayudar?</Say>
+    <Say language="es-MX" voice="Polly.Mia">¡Hola! Soy Nekon, asistente de Morales Plumbing. ¿En qué le puedo ayudar?</Say>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="es-MX">No escuché nada. Hasta luego.</Say>
+    <Say language="es-MX" voice="Polly.Mia">No escuché nada. Hasta luego.</Say>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
 
@@ -685,22 +686,22 @@ async def process_speech_es(SpeechResult: str = Form(None)):
         goodbye = ["adiós", "adios", "bye", "chao", "gracias", "ok gracias"]
         if any(w in SpeechResult.lower() for w in goodbye):
             twiml = '''<?xml version="1.0" encoding="UTF-8"?>
-<Response><Say language="es-MX" voice="Polly.Miguel">Fue un placer parce. ¡Hasta luego!</Say></Response>'''
+<Response><Say language="es-MX" voice="Polly.Mia">Fue un placer. ¡Hasta luego!</Say></Response>'''
             return Response(content=twiml, media_type="application/xml")
         
         ai_response = ask_voice_ai(SpeechResult, "es")
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Miguel">{ai_response}</Say>
+    <Say language="es-MX" voice="Polly.Mia">{ai_response}</Say>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="es-MX" voice="Polly.Miguel">¿Algo más?</Say>
+    <Say language="es-MX" voice="Polly.Mia">¿Algo más?</Say>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="es-MX">Bueno, hasta luego.</Say>
+    <Say language="es-MX" voice="Polly.Mia">Bueno, hasta luego.</Say>
 </Response>'''
     else:
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Miguel">No te escuché. ¿Puedes repetir?</Say>
+    <Say language="es-MX" voice="Polly.Mia">No le escuché. ¿Puede repetir?</Say>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
@@ -711,9 +712,9 @@ async def incoming_call_en():
     base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="en-US" voice="Polly.Matthew">Hello! I'm Alex, assistant for Morales Plumbing. How can I help you?</Say>
+    <Say language="en-US" voice="Polly.Joanna">Hello! I'm Nekon, assistant for Morales Plumbing. How can I help you?</Say>
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="en-US">I didn't hear anything. Goodbye.</Say>
+    <Say language="en-US" voice="Polly.Joanna">I didn't hear anything. Goodbye.</Say>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
 
@@ -728,22 +729,22 @@ async def process_speech_en(SpeechResult: str = Form(None)):
         goodbye = ["goodbye", "bye", "thanks", "thank you", "that's all"]
         if any(w in SpeechResult.lower() for w in goodbye):
             twiml = '''<?xml version="1.0" encoding="UTF-8"?>
-<Response><Say language="en-US" voice="Polly.Matthew">It was a pleasure. Goodbye!</Say></Response>'''
+<Response><Say language="en-US" voice="Polly.Joanna">It was a pleasure. Goodbye!</Say></Response>'''
             return Response(content=twiml, media_type="application/xml")
         
         ai_response = ask_voice_ai(SpeechResult, "en")
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="en-US" voice="Polly.Matthew">{ai_response}</Say>
+    <Say language="en-US" voice="Polly.Joanna">{ai_response}</Say>
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="en-US" voice="Polly.Matthew">Anything else?</Say>
+    <Say language="en-US" voice="Polly.Joanna">Anything else?</Say>
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
-    <Say language="en-US">Alright, goodbye.</Say>
+    <Say language="en-US" voice="Polly.Joanna">Alright, goodbye.</Say>
 </Response>'''
     else:
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="en-US" voice="Polly.Matthew">I didn't hear you. Can you repeat?</Say>
+    <Say language="en-US" voice="Polly.Joanna">I didn't hear you. Can you repeat?</Say>
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
 </Response>'''
     return Response(content=twiml, media_type="application/xml")
