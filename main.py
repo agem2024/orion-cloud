@@ -612,7 +612,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
             tg_chat = os.getenv("TELEGRAM_OWNER_ID")
             if tg_token and tg_chat:
                 tipo_t = "🚨 URGENCIA" if is_emergency else f"📅 {scheduled_time}"
-                msg = f"NUEVA CITA (DISPATCHER)\\n\\nID: {code}\\nTipo: {tipo_t}\\nNombre: {name}\\nTeléfono: {phone}\\nEmail: {email}\\nDirección: {address}\\nEstatus: {status}\\n\\nProblema: {diagnosis}\\nMateriales Recomendados: {materials}"
+                msg = f"NUEVA CITA (DISPATCHER)\n\nID: {code}\nTipo: {tipo_t}\nNombre: {name}\nTeléfono: {phone}\nEmail: {email}\nDirección: {address}\nEstatus: {status}\n\nProblema: {diagnosis}\nMateriales Recomendados: {materials}"
                 requests.post(f"https://api.telegram.org/bot{tg_token}/sendMessage", data={"chat_id": tg_chat, "text": msg})
         except Exception as e:
             logger.error(f"Error enviando Telegram: {e}")
