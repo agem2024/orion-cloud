@@ -8,7 +8,15 @@ from brain import OrionBrain
 from urllib.parse import quote
 
 # Configuración
+
+# Configuración
 app = FastAPI()
+
+# ============ MEMORIA DE SESIÓN ============
+# Diccionario temporal para guardar el historial de la conversación por CallSid
+# En producción, esto debería ir a Redis o DB.
+call_sessions = {}
+
 
 # CORS para permitir peticiones desde la web
 app.add_middleware(
@@ -475,34 +483,42 @@ from fastapi import Form
 from fastapi.responses import Response
 
 # System prompts para voz - Nekon femenino profesional CON AGENDAMIENTO
-VOICE_PROMPT_ES = """Eres Nekon, asistente telefónica ejecutiva de Morales Plumbing.
-Voz femenina profesional, clara y amable.
-Respondes en MÁXIMO 2 oraciones cortas.
+VOICE_PROMPT_ES = """Eres Nekon, asistente telefónica ejecutiva (Dispatcher) de Morales Plumbing.
+Voz femenina profesional, paciente y amable. Respondes en MÁXIMO 2 oraciones cortas.
 Servicios: Plomería profesional residencial y comercial. Horario 24/7.
-Regla: NO des precios por teléfono bajo ninguna circunstancia.
+Regla 1: NO des precios por teléfono bajo ninguna circunstancia.
+Regla 2: Para agendar una cita o mandar a un técnico, NECESITAS OBLIGATORIAMENTE 6 DATOS:
+1. Nombre
+2. Teléfono
+3. Email (Pide al cliente que lo deletree si no se entiende bien)
+4. Dirección del servicio
+5. Estatus (Si es dueño de la propiedad o si renta)
+6. Diagnóstico / Problema de plomería
 
-PARA AGENDAR CITAS:
-- Si el cliente quiere agendar, pregunta: nombre, teléfono, y mejor horario.
-- Responde: "Perfecto, he agendado su cita. Le confirmaremos por WhatsApp."
+NO CONFIRMES LA CITA SI FALTAN DATOS. Pregunta uno por uno de manera natural y conversacional.
+Cuando tengas los 6 datos, responde: "Perfecto, he agendado su cita. Le confirmaremos los detalles y enviaremos al técnico."
+"""
 
-Contacto: WhatsApp (669) 213-4422"""
-
-VOICE_PROMPT_EN = """You are Nekon, executive phone assistant for Morales Plumbing.
-Professional female voice, clear and friendly.
-Respond in MAX 2 short sentences.
+VOICE_PROMPT_EN = """You are Nekon, executive phone dispatcher for Morales Plumbing.
+Professional female voice, patient and friendly. Respond in MAX 2 short sentences.
 Services: Professional residential and commercial plumbing. Available 24/7.
-Rule: DO NOT give prices over the phone under any circumstances.
+Rule 1: DO NOT give prices over the phone under any circumstances.
+Rule 2: To schedule an appointment or dispatch a tech, you STRICTLY NEED 6 FIELDS:
+1. Name
+2. Phone
+3. Email (Ask the client to spell it out if unclear)
+4. Service Address
+5. Status (Homeowner or Renter)
+6. Diagnosis / Plumbing problem
 
-FOR SCHEDULING:
-- If client wants to schedule, ask: name, phone, and best time.
-- Respond: "Perfect, scheduled. We'll confirm via WhatsApp."
-
-Contact: WhatsApp (669) 213-4422"""
+DO NOT CONFIRM THE APPOINTMENT IF ANY DATA IS MISSING. Ask for them one by one naturally.
+When you have all 6, say: "Perfect, I've scheduled your appointment. We'll confirm the details and send the tech."
+"""
 
 # Archivo compartido de citas (accesible por todos los bots)
 APPOINTMENTS_FILE = "/tmp/orion_appointments.json"
 
-def save_appointment(name: str, phone: str, time_slot: str, source: str = "phone") -> str:
+def save_appointment(name: str, phone: str, email: str, address: str, status: str, diagnosis: str, materials: str, source: str = "phone") -> str:
     """Guarda cita en archivo JSON compartido y retorna código MP-XXXX"""
     import json
     import random
@@ -526,7 +542,11 @@ def save_appointment(name: str, phone: str, time_slot: str, source: str = "phone
             "code": code,
             "name": name,
             "phone": phone,
-            "time_slot": time_slot,
+            "email": email,
+            "address": address,
+            "status": status,
+            "diagnosis": diagnosis,
+            "materials": materials,
             "source": source,
             "created_at": datetime.now().isoformat(),
             "confirmed": False
@@ -543,7 +563,7 @@ def save_appointment(name: str, phone: str, time_slot: str, source: str = "phone
             tg_token = os.getenv("TELEGRAM_BOT_TOKEN")
             tg_chat = os.getenv("TELEGRAM_OWNER_ID")
             if tg_token and tg_chat:
-                msg = f"NUEVA CITA (ORION BOT)\n\nID: {code}\nNombre: {name}\nTeléfono: {phone}\nHora: {time_slot}"
+                msg = f"NUEVA CITA (DISPATCHER)\n\nID: {code}\nNombre: {name}\nTeléfono: {phone}\nEmail: {email}\nDirección: {address}\nEstatus: {status}\n\nProblema: {diagnosis}\nMateriales Recomendados: {materials}"
                 requests.post(f"https://api.telegram.org/bot{tg_token}/sendMessage", data={"chat_id": tg_chat, "text": msg})
         except Exception as e:
             logger.error(f"Error enviando Telegram: {e}")
@@ -558,7 +578,7 @@ def save_appointment(name: str, phone: str, time_slot: str, source: str = "phone
                 msg['To'] = email_user
                 msg['Subject'] = f"Nueva Cita - {name} ({code})"
                 
-                body = f"NUEVA CITA AGENDADA POR BOT TELEFÓNICO\n\nID: {code}\nNombre: {name}\nTeléfono: {phone}\nHora: {time_slot}\nOrigen: {source}"
+                body = f"NUEVA CITA AGENDADA POR DISPATCHER TELEFÓNICO\n\nID: {code}\nNombre: {name}\nTeléfono: {phone}\nEmail: {email}\nDirección: {address}\nEstatus: {status}\n\nDiagnóstico: {diagnosis}\nMateriales Mínimos Sugeridos: {materials}\nOrigen: {source}"
                 msg.attach(MIMEText(body, 'plain'))
                 
                 server = smtplib.SMTP('smtp.gmail.com', 587)
@@ -575,12 +595,26 @@ def save_appointment(name: str, phone: str, time_slot: str, source: str = "phone
         logger.error(f"Error guardando cita: {e}")
         return ""
 
-def extract_appointment_info(text: str, lang: str = "es") -> dict:
-    """Usa IA para extraer info de cita del texto"""
-    prompt = f"""Extract appointment info from this text. Return JSON only:
-{{"name": "client name or null", "phone": "phone number or null", "time": "preferred time or null", "wants_appointment": true/false}}
+def extract_appointment_info(call_history: list, lang: str = "es") -> dict:
+    """Usa IA para extraer info de cita usando TODO el historial"""
+    history_text = "\n".join([f"{msg['role']}: {msg['content']}" for msg in call_history if msg['role'] != 'system'])
+    
+    prompt = f"""Extract appointment and dispatcher info from this conversation history.
+Return JSON only:
+{{
+  "name": "client name or null",
+  "phone": "phone number or null",
+  "email": "email address or null",
+  "address": "service address or null",
+  "status": "owner/renter/null",
+  "diagnosis": "brief description of problem or null",
+  "materials": "list of minimum recommended tools/materials for this job based on diagnosis, or null",
+  "is_complete": true/false (true ONLY if name, phone, email, address, status, and diagnosis are ALL present)
+}}
 
-Text: "{text}"
+Conversation History:
+{history_text}
+
 JSON:"""
 
     try:
@@ -626,27 +660,41 @@ JSON:"""
                 return result
         except Exception as gemini_e:
             logger.error(f"Voice AI Gemini extract error: {gemini_e}")
-        return {"wants_appointment": False}
+        return {"is_complete": False}
 
-def ask_voice_ai(user_input: str, lang: str = "es") -> str:
-    """Get AI response for voice calls - with appointment detection"""
-    # Check if user wants to schedule
-    appointment_info = extract_appointment_info(user_input, lang)
-    
-    if appointment_info.get("wants_appointment") and appointment_info.get("name") and appointment_info.get("phone"):
-        # Save appointment and get code
-        code = save_appointment(
-            appointment_info.get("name", "Cliente"),
-            appointment_info.get("phone", ""),
-            appointment_info.get("time", "Por confirmar"),
-            "phone_call"
-        )
-        if lang == "es":
-            return f"Perfecto, he agendado su cita. Su código de confirmación es {code}. Le enviaremos los detalles por WhatsApp al número proporcionado."
-        else:
-            return f"Perfect, I've scheduled your appointment. Your confirmation code is {code}. We'll send the details via WhatsApp to the number provided."
-    
+def ask_voice_ai(user_input: str, call_sid: str, lang: str = "es") -> str:
+    """Get AI response for voice calls - with conversation memory and extraction"""
     system_msg = VOICE_PROMPT_ES if lang == "es" else VOICE_PROMPT_EN
+    
+    # Iniciar historial de sesión si no existe
+    if call_sid not in call_sessions:
+        call_sessions[call_sid] = [{"role": "system", "content": system_msg}]
+        
+    # Añadir input del usuario al historial
+    call_sessions[call_sid].append({"role": "user", "content": user_input})
+    
+    # Extraer info usando TODO el historial
+    appointment_info = extract_appointment_info(call_sessions[call_sid], lang)
+    
+    if appointment_info.get("is_complete"):
+        code = save_appointment(
+            name=appointment_info.get("name", "Cliente"),
+            phone=appointment_info.get("phone", "No provisto"),
+            email=appointment_info.get("email", "No provisto"),
+            address=appointment_info.get("address", "No provisto"),
+            status=appointment_info.get("status", "No provisto"),
+            diagnosis=appointment_info.get("diagnosis", "Inspección General"),
+            materials=appointment_info.get("materials", "Kit básico"),
+            source="phone_call"
+        )
+        
+        # Limpiar sesión para evitar doble guardado
+        del call_sessions[call_sid]
+        
+        if lang == "es":
+            return f"Perfecto, he agendado su cita con código {code}. Enviaremos a nuestro técnico de inmediato."
+        else:
+            return f"Perfect, I've scheduled your appointment with code {code}. We will send our technician right away."
     
     try:
         import openai
@@ -654,13 +702,14 @@ def ask_voice_ai(user_input: str, lang: str = "es") -> str:
         
         response = client.chat.completions.create(
             model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_msg},
-                {"role": "user", "content": user_input}
-            ],
-            max_tokens=100
+            messages=call_sessions[call_sid],
+            max_tokens=150
         )
-        return response.choices[0].message.content.strip()
+        ai_response = response.choices[0].message.content.strip()
+        
+        # Guardar respuesta de la IA en el historial
+        call_sessions[call_sid].append({"role": "assistant", "content": ai_response})
+        return ai_response
     except Exception as e:
         logger.error(f"Voice AI OpenAI error: {e}")
         try:
@@ -799,7 +848,7 @@ async def incoming_call_es():
     return Response(content=twiml, media_type="application/xml")
 
 @app.api_route("/process-speech-es", methods=["GET", "POST"])
-async def process_speech_es(SpeechResult: str = Form(None)):
+async def process_speech_es(SpeechResult: str = Form(None), CallSid: str = Form("NO_SID")):
     """Process Spanish speech"""
     base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
     
@@ -813,7 +862,7 @@ async def process_speech_es(SpeechResult: str = Form(None)):
 <Response><Play>{msg}</Play></Response>'''
             return Response(content=twiml, media_type="application/xml")
         
-        ai_response = ask_voice_ai(SpeechResult, "es")
+        ai_response = ask_voice_ai(SpeechResult, CallSid, "es")
         audio_url = get_cached_tts_url(ai_response, "es", base_url)
         play_ai = f"<Play>{audio_url}</Play>" if audio_url else f'<Say language="es-MX" voice="Polly.Mia">{ai_response}</Say>'
         play_more = f"<Play>{get_cached_tts_url('¿Algo más?', 'es', base_url)}</Play>"
@@ -856,7 +905,7 @@ async def incoming_call_en():
     return Response(content=twiml, media_type="application/xml")
 
 @app.api_route("/process-speech-en", methods=["GET", "POST"])
-async def process_speech_en(SpeechResult: str = Form(None)):
+async def process_speech_en(SpeechResult: str = Form(None), CallSid: str = Form("NO_SID")):
     """Process English speech"""
     base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
     
@@ -870,7 +919,7 @@ async def process_speech_en(SpeechResult: str = Form(None)):
 <Response><Play>{msg}</Play></Response>'''
             return Response(content=twiml, media_type="application/xml")
         
-        ai_response = ask_voice_ai(SpeechResult, "en")
+        ai_response = ask_voice_ai(SpeechResult, CallSid, "en")
         audio_url = get_cached_tts_url(ai_response, "en", base_url)
         play_ai = f"<Play>{audio_url}</Play>" if audio_url else f'<Say language="en-US" voice="Polly.Joanna">{ai_response}</Say>'
         play_more = f"<Play>{get_cached_tts_url('Anything else?', 'en', base_url)}</Play>"
