@@ -658,11 +658,17 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                                     <p style="margin: 5px 0;"><strong>Reported Issue:</strong> {diagnosis}</p>
                                 </div>
                                 <p style="color: #555; font-size: 16px; line-height: 1.6;">Our technical team is currently reviewing your request. We will contact you shortly to confirm the exact time of our visit.</p>
+                                
+                                <div style="background-color: #f0f7ff; border-left: 4px solid #2196F3; padding: 15px; margin: 20px 0;">
+                                    <p style="margin: 5px 0; color: #0a4f96;"><strong>🔧 Simple Issue? Try DIY!</strong></p>
+                                    <p style="margin: 5px 0; font-size: 14px; color: #333;">If you believe this is a minor issue, you can check our <a href="http://www.moralesplumbing.com" style="color: #2196F3;">Do-It-Yourself (DIY) guides</a> on our website while you wait for our confirmation.</p>
+                                </div>
                             </div>
                             <div style="background-color: #f4f4f4; text-align: center; padding: 20px; color: #777; font-size: 14px;">
                                 <p style="margin: 5px 0;"><strong>MORALES PLUMBING | AI-INTEGRATED SERVICES</strong></p>
                                 <p style="margin: 5px 0;">Lic. C-36 #1156542 | San Jose, CA</p>
                                 <p style="margin: 5px 0;">(669) 213-4422 | moralesplumbing026@gmail.com</p>
+                                <p style="margin: 5px 0;"><a href="http://www.moralesplumbing.com" style="color: #D4AF37; text-decoration: none;"><strong>www.moralesplumbing.com</strong></a></p>
                             </div>
                         </div>
                     </body>
