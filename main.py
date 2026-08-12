@@ -12,19 +12,34 @@ from urllib.parse import quote
 # Configuración
 app = FastAPI()
 
+# ============ RECUPERAR EL LOGGER PERDIDO ============
+import logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger("ORION_CLOUD")
+# =======================================================
+
 # Firebase Init
 import firebase_admin
 from firebase_admin import credentials, firestore
+import json
 
 db = None
 try:
     if not firebase_admin._apps:
-        cred = credentials.Certificate('serviceAccountKey.json')
+        # Intenta usar la variable de entorno de Render PRIMERO
+        firebase_creds_env = os.environ.get("FIREBASE_CREDENTIALS")
+        if firebase_creds_env:
+            cred_dict = json.loads(firebase_creds_env)
+            cred = credentials.Certificate(cred_dict)
+        else:
+            # Si no hay variable, intenta con el archivo local
+            cred = credentials.Certificate('serviceAccountKey.json')
+            
         firebase_admin.initialize_app(cred)
     db = firestore.client()
     logger.info("Firebase Firestore inicializado correctamente.")
 except Exception as e:
-    logger.error(f"Error inicializando Firebase: {e}")
+    logger.error(f"Error inicializando Firebase (funcionando sin DB): {e}")
 
 
 # ============ MEMORIA DE SESIÓN ============
