@@ -12,6 +12,21 @@ from urllib.parse import quote
 # Configuración
 app = FastAPI()
 
+# Firebase Init
+import firebase_admin
+from firebase_admin import credentials, firestore
+
+db = None
+try:
+    if not firebase_admin._apps:
+        cred = credentials.Certificate('serviceAccountKey.json')
+        firebase_admin.initialize_app(cred)
+    db = firestore.client()
+    logger.info("Firebase Firestore inicializado correctamente.")
+except Exception as e:
+    logger.error(f"Error inicializando Firebase: {e}")
+
+
 # ============ MEMORIA DE SESIÓN ============
 # Diccionario temporal para guardar el historial de la conversación por CallSid
 # En producción, esto debería ir a Redis o DB.
@@ -99,6 +114,11 @@ def health():
 async def get_manual():
     from fastapi.responses import FileResponse
     return FileResponse("manual.html")
+
+@app.get("/logo")
+async def get_logo():
+    from fastapi.responses import FileResponse
+    return FileResponse("logo_portada.png")
 
 # ============ TTS API FOR WEB ============
 @app.post("/api/tts")
@@ -553,16 +573,9 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
     from email.mime.multipart import MIMEMultipart
     
     try:
-        appointments = []
-        if os.path.exists(APPOINTMENTS_FILE):
-            with open(APPOINTMENTS_FILE, 'r') as f:
-                appointments = json.load(f)
-        
-        # Generar código de confirmación MP-XXXX
+        # Guardar en Firestore o fallback local
         code = f"MP-{random.randint(1000, 9999)}"
-        
         appointment = {
-            "id": len(appointments) + 1,
             "code": code,
             "name": name,
             "phone": phone,
@@ -577,42 +590,88 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
             "created_at": datetime.now().isoformat(),
             "confirmed": False
         }
-        appointments.append(appointment)
-        
-        with open(APPOINTMENTS_FILE, 'w') as f:
-            json.dump(appointments, f, indent=2)
-        
-        logger.info(f"📅 Cita guardada: {name} - {phone} - {time_slot} (Código: {code})")
 
-        # Notificar por Telegram
+        if db:
+            db.collection("appointments").document(code).set(appointment)
+            logger.info(f"📅 Cita guardada en FIREBASE: {name} (Código: {code})")
+        else:
+            appointments = []
+            if os.path.exists(APPOINTMENTS_FILE):
+                with open(APPOINTMENTS_FILE, 'r') as f:
+                    appointments = json.load(f)
+            appointment["id"] = len(appointments) + 1
+            appointments.append(appointment)
+            with open(APPOINTMENTS_FILE, 'w') as f:
+                json.dump(appointments, f, indent=2)
+            logger.info(f"📅 Cita guardada en LOCAL (Fallback): {name} (Código: {code})")
+
+        # Notificar por Telegram al Owner
         try:
             tg_token = os.getenv("TELEGRAM_BOT_TOKEN")
             tg_chat = os.getenv("TELEGRAM_OWNER_ID")
             if tg_token and tg_chat:
                 tipo_t = "🚨 URGENCIA" if is_emergency else f"📅 {scheduled_time}"
-                msg = f"NUEVA CITA (DISPATCHER)\n\nID: {code}\nTipo: {tipo_t}\nNombre: {name}\nTeléfono: {phone}\nEmail: {email}\nDirección: {address}\nEstatus: {status}\n\nProblema: {diagnosis}\nMateriales Recomendados: {materials}"
-                requests.post(f"https://api.telegram.org/bot{tg_token}/sendMessage", data={"chat_id": tg_chat, "text": msg})
+                msg_tg = f"NUEVA CITA (DISPATCHER)\n\nID: {code}\nTipo: {tipo_t}\nNombre: {name}\nTeléfono: {phone}\nEmail: {email}\nDirección: {address}\nEstatus: {status}\n\nProblema: {diagnosis}\nMateriales Recomendados: {materials}"
+                requests.post(f"https://api.telegram.org/bot{tg_token}/sendMessage", data={"chat_id": tg_chat, "text": msg_tg})
         except Exception as e:
             logger.error(f"Error enviando Telegram: {e}")
 
-        # Notificar por Email
+        # Notificar por Email (Al Owner y al Cliente)
         try:
             email_user = os.getenv("EMAIL_USER")
             email_pass = os.getenv("EMAIL_PASS")
             if email_user and email_pass:
-                msg = MIMEMultipart()
-                msg['From'] = email_user
-                msg['To'] = email_user
-                msg['Subject'] = f"Nueva Cita - {name} ({code})"
-                
-                body = f"NUEVA CITA AGENDADA POR DISPATCHER TELEFÓNICO\n\nID: {code}\nNombre: {name}\nTeléfono: {phone}\nEmail: {email}\nDirección: {address}\nEstatus: {status}\n\nDiagnóstico: {diagnosis}\nMateriales Mínimos Sugeridos: {materials}\nOrigen: {source}"
-                msg.attach(MIMEText(body, 'plain'))
-                
                 server = smtplib.SMTP('smtp.gmail.com', 587)
                 server.starttls()
                 server.login(email_user, email_pass)
-                text = msg.as_string()
-                server.sendmail(email_user, email_user, text)
+                
+                # 1. Email interno al Owner
+                msg_owner = MIMEMultipart()
+                msg_owner['From'] = email_user
+                msg_owner['To'] = email_user
+                msg_owner['Subject'] = f"Nueva Cita - {name} ({code})"
+                body_owner = f"NUEVA CITA AGENDADA POR DISPATCHER TELEFÓNICO\n\nID: {code}\nNombre: {name}\nTeléfono: {phone}\nEmail: {email}\nDirección: {address}\nEstatus: {status}\n\nDiagnóstico: {diagnosis}\nMateriales Mínimos Sugeridos: {materials}\nOrigen: {source}"
+                msg_owner.attach(MIMEText(body_owner, 'plain'))
+                server.sendmail(email_user, email_user, msg_owner.as_string())
+                
+                # 2. Email HTML al Cliente (Si dejó email)
+                if email and "@" in email:
+                    msg_client = MIMEMultipart()
+                    msg_client['From'] = email_user
+                    msg_client['To'] = email
+                    msg_client['Subject'] = f"Service Request Received - Morales Plumbing ({code})"
+                    
+                    html_client = f"""
+                    <html>
+                    <body style="font-family: 'Inter', sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px;">
+                        <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
+                            <div style="background: linear-gradient(135deg, #0A192F 0%, #112240 100%); text-align: center; padding: 30px 20px; border-bottom: 4px solid #D4AF37;">
+                                <img src="https://orion-cloud-1.onrender.com/logo" alt="Morales Plumbing Logo" style="max-width: 200px;">
+                                <h1 style="color: #D4AF37; margin-bottom: 0;">Service Request Received</h1>
+                            </div>
+                            <div style="padding: 30px;">
+                                <p style="color: #333; font-size: 16px;">Hello <strong>{name}</strong>,</p>
+                                <p style="color: #555; font-size: 16px; line-height: 1.6;">Thank you for contacting Morales Plumbing. We have successfully received your service request.</p>
+                                <div style="background-color: #f9f9f9; border-left: 4px solid #D4AF37; padding: 15px; margin: 20px 0;">
+                                    <p style="margin: 5px 0;"><strong>Ticket ID:</strong> {code}</p>
+                                    <p style="margin: 5px 0;"><strong>Service Address:</strong> {address}</p>
+                                    <p style="margin: 5px 0;"><strong>Reported Issue:</strong> {diagnosis}</p>
+                                </div>
+                                <p style="color: #555; font-size: 16px; line-height: 1.6;">Our technical team is currently reviewing your request. We will contact you shortly to confirm the exact time of our visit.</p>
+                            </div>
+                            <div style="background-color: #f4f4f4; text-align: center; padding: 20px; color: #777; font-size: 14px;">
+                                <p style="margin: 5px 0;"><strong>MORALES PLUMBING | AI-INTEGRATED SERVICES</strong></p>
+                                <p style="margin: 5px 0;">Lic. C-36 #1156542 | San Jose, CA</p>
+                                <p style="margin: 5px 0;">(669) 213-4422 | moralesplumbing026@gmail.com</p>
+                            </div>
+                        </div>
+                    </body>
+                    </html>
+                    """
+                    msg_client.attach(MIMEText(html_client, 'html'))
+                    server.sendmail(email_user, email, msg_client.as_string())
+                    logger.info(f"📧 HTML Confirmation Email sent to client {email}")
+                
                 server.quit()
         except Exception as e:
             logger.error(f"Error enviando Email: {e}")
@@ -758,15 +817,20 @@ def ask_voice_ai(user_input: str, call_sid: str, lang: str = "es") -> str:
 # API endpoint para ver citas (accesible por otros bots)
 @app.get("/api/appointments")
 def get_appointments():
-    """Endpoint para que otros bots lean las citas"""
+    """Endpoint para que otros bots lean las citas desde Firebase o Local"""
     import json
     try:
-        if os.path.exists(APPOINTMENTS_FILE):
+        if db:
+            docs = db.collection("appointments").order_by("created_at", direction=firestore.Query.DESCENDING).stream()
+            apps = [doc.to_dict() for doc in docs]
+            return {"appointments": apps}
+        elif os.path.exists(APPOINTMENTS_FILE):
             with open(APPOINTMENTS_FILE, 'r') as f:
                 return {"appointments": json.load(f)}
         return {"appointments": []}
-    except:
-        return {"appointments": [], "error": "Could not read appointments"}
+    except Exception as e:
+        logger.error(f"Error reading appointments: {e}")
+        return {"appointments": [], "error": str(e)}
 
 
 @app.get("/voice")
