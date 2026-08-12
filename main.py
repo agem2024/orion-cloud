@@ -518,7 +518,7 @@ from fastapi import Form
 from fastapi.responses import Response
 
 # System prompts para voz - Nekon femenino profesional CON AGENDAMIENTO
-VOICE_PROMPT_ES = """Eres Nekon, asistente telefónica ejecutiva (Dispatcher) de Morales Plumbing.
+VOICE_PROMPT_ES = """Eres Sofia Lin, asistente telefónica ejecutiva (Dispatcher) de Morales Plumbing.
 Voz femenina profesional, paciente y amable. Respondes en MÁXIMO 2 oraciones cortas.
 Servicios: Plomería profesional residencial y comercial. Horario 24/7.
 Regla 1: NO des precios por teléfono bajo ninguna circunstancia.
@@ -536,7 +536,7 @@ Cuando tengas los 6 datos, responde: "Perfecto, he agendado su cita. Le confirma
 Regla 3 (ANTI-SPAM): Si detectas que la persona llama para vender servicios (marketing, SEO, seguros, web design), o es un robot de telemarketing, o pide hablar con el dueño para ofrecer servicios, di: "No estamos interesados, gracias por llamar" y no agendes ninguna cita. No des información adicional.
 """
 
-VOICE_PROMPT_EN = """You are Nekon, executive phone dispatcher for Morales Plumbing.
+VOICE_PROMPT_EN = """You are Sofia Lin, executive phone dispatcher for Morales Plumbing.
 Professional female voice, patient and friendly. Respond in MAX 2 short sentences.
 Services: Professional residential and commercial plumbing. Available 24/7.
 Rule 1: DO NOT give prices over the phone under any circumstances.
@@ -950,7 +950,7 @@ async def select_language(Digits: str = Form(None)):
         # English selected
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="en-US" voice="Polly.Joanna">Hello! I'm Nekon, assistant for Morales Plumbing. How can I help you?</Say>
+    <Say language="en-US" voice="Polly.Joanna">Hello! I'm Sofia Lin, assistant for Morales Plumbing. How can I help you?</Say>
     <Gather input="speech" language="en-US" action="{base_url}/process-speech-en" method="POST" timeout="5" speechTimeout="auto"/>
     <Say language="en-US" voice="Polly.Joanna">I didn't hear anything. Goodbye.</Say>
 </Response>'''
@@ -958,7 +958,7 @@ async def select_language(Digits: str = Form(None)):
         # Spanish selected
         twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-    <Say language="es-MX" voice="Polly.Mia">¡Hola! Soy Nekon, asistente de Morales Plumbing. ¿En qué le puedo ayudar?</Say>
+    <Say language="es-MX" voice="Polly.Mia">¡Hola! Soy Sofia Lin, asistente de Morales Plumbing. ¿En qué le puedo ayudar?</Say>
     <Gather input="speech" language="es-MX" action="{base_url}/process-speech-es" method="POST" timeout="5" speechTimeout="auto"/>
     <Say language="es-MX" voice="Polly.Mia">No escuché nada. Hasta luego.</Say>
 </Response>'''
@@ -977,7 +977,7 @@ async def select_language(Digits: str = Form(None)):
 async def incoming_call_es():
     """Handle incoming Spanish call (direct)"""
     base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
-    msg1 = get_cached_tts_url("¡Hola! Soy Nekon, asistente de Morales Plumbing. ¿En qué le puedo ayudar?", "es", base_url)
+    msg1 = get_cached_tts_url("¡Hola! Soy Sofia Lin, asistente de Morales Plumbing. ¿En qué le puedo ayudar?", "es", base_url)
     msg2 = get_cached_tts_url("No escuché nada. Hasta luego.", "es", base_url)
     
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
@@ -1034,7 +1034,7 @@ async def process_speech_es(SpeechResult: str = Form(None), CallSid: str = Form(
 async def incoming_call_en():
     """Handle incoming English call"""
     base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
-    msg1 = get_cached_tts_url("Hello! I'm Nekon, assistant for Morales Plumbing. How can I help you?", "en", base_url)
+    msg1 = get_cached_tts_url("Hello! I'm Sofia Lin, assistant for Morales Plumbing. How can I help you?", "en", base_url)
     msg2 = get_cached_tts_url("I didn't hear anything. Goodbye.", "en", base_url)
     
     twiml = f'''<?xml version="1.0" encoding="UTF-8"?>
