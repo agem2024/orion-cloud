@@ -337,37 +337,6 @@ Lic. C-36 #1156542 | San Jose, CA
                 await client.post(url, json=payload)
             return {"ok": True}
             
-        if text_lower == "/r1" or text_lower == "r1":
-            # Enviamos 4 mensajes separados para que Telegram genere la miniatura de cada link
-            mensajes_r1 = [
-                "📄 *Propuestas - 538 Leigh Ave*\n\n1️⃣ *Reparación:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/propuesta_reparacion_538_leigh.html",
-                "2️⃣ *Opción B:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/propuesta_opcion_b_538_leigh.html",
-                "3️⃣ *ADU Tankless:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/propuesta_adu_tankless_rodrigo.html",
-                "⚖️ *Términos Legales:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/propuesta_lega_538_leigh.html"
-            ]
-            
-            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-            async with httpx.AsyncClient() as client:
-                for msg in mensajes_r1:
-                    # Usamos text plano sin parse_mode para evitar error por guiones bajos
-                    payload = {"chat_id": chat_id, "text": msg}
-                    await client.post(url, json=payload)
-                    
-            return {"ok": True}
-            
-        if text_lower == "/j1" or text_lower == "j1":
-            mensajes_j1 = [
-                "📄 *Propuestas - Joan Wrabetz*\n\n1️⃣ *Instalación Lavabo Doble:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/lavy_installation_proposal.html?v=2",
-                "2️⃣ *Actualización Tankless:*\nhttps://agem2024.github.io/SEGURITI-USC/docs/proposals/water_heater_update_o_replace.html?v=2"
-            ]
-            
-            url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-            async with httpx.AsyncClient() as client:
-                for msg in mensajes_j1:
-                    payload = {"chat_id": chat_id, "text": msg}
-                    await client.post(url, json=payload)
-                    
-            return {"ok": True}
 
         if text_lower.startswith("/cv2"):
             await send_telegram_message(chat_id, f"📄 *CV VERSIÓN 2 (Profesional)*\n\n✨ Formato ATS-friendly con logros\n📊 21+ años experiencia\n🔗 {CV2_URL}")
