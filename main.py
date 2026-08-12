@@ -38,7 +38,7 @@ BASE_URL = os.getenv("BASE_URL")
 brain = OrionBrain()
 
 # ============ URLS ACTUALIZADAS (Clonadas de orion-clean) ============
-MANUAL_URL = 'https://agem2024.github.io/SEGURITI-USC/Morales Plumbing_MANUAL_PROFESIONAL.html'
+MANUAL_URL = 'https://orion-cloud-1.onrender.com/manual'
 PRICEBOOK_URL = 'https://agem2024.github.io/SEGURITI-USC/pricebook-index.html'
 MORALES_PLUMBING_BOTS_URL = 'https://agem2024.github.io/Morales_Plumbing/'
 CV_URL = 'https://agem2024.github.io/SEGURITI-USC/cv_pro.html'
@@ -94,6 +94,11 @@ async def get_openai_tts(text: str, lang: str = "es") -> bytes:
 @app.get("/")
 def health():
     return {"status": "ok", "system": "Morales Plumbing CLOUD v4 - Full Commands (Synced with orion-clean)"}
+
+@app.get("/manual")
+async def get_manual():
+    from fastapi.responses import FileResponse
+    return FileResponse("manual.html")
 
 # ============ TTS API FOR WEB ============
 @app.post("/api/tts")
