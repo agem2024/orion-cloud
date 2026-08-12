@@ -170,6 +170,32 @@ async def web_chat(request: Request):
         error_msg = "Error procesando la solicitud." if lang == "es" else "Error processing request."
         return {"response": error_msg, "error": True}
 
+@app.post("/api/web-appointment")
+async def api_web_appointment(request: Request):
+    """Endpoint para recibir citas directamente desde los formularios web"""
+    try:
+        data = await request.json()
+        name = data.get("name", "Web Client")
+        phone = data.get("phone", "N/A")
+        email = data.get("email", "")
+        address = data.get("address", "N/A")
+        diagnosis = data.get("diagnosis", "Solicitado vía formulario web")
+        materials = "Por evaluar en sitio"
+        is_emergency = data.get("is_emergency", False)
+        scheduled_time = data.get("scheduled_time", "ASAP" if is_emergency else "Por coordinar")
+        
+        # Guarda la cita (Esto automáticamente Firebase, Email a Cliente y Owner, Telegram)
+        code = save_appointment(
+            name=name, phone=phone, email=email, address=address, status="Cliente Web", 
+            diagnosis=diagnosis, materials=materials, is_emergency=is_emergency, 
+            scheduled_time=scheduled_time, source="website"
+        )
+        
+        return {"success": True, "code": code, "message": "Appointment received and saved"}
+    except Exception as e:
+        logger.error(f"Error processing web appointment: {e}")
+        return {"success": False, "error": str(e)}
+
 @app.post(f"/webhook/{TELEGRAM_TOKEN}")
 async def telegram_webhook(req: Request):
     """Endpoint principal para recibir updates de Telegram"""
