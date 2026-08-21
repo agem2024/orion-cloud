@@ -212,7 +212,7 @@ async def api_web_appointment(request: Request):
         is_emergency = data.get("is_emergency", False)
         scheduled_time = data.get("scheduled_time", "ASAP" if is_emergency else "Por coordinar")
         
-        # Guarda la cita (Esto automÃ¡ticamente Firebase, Email a Cliente y Owner, Telegram)
+        # Guarda la cita en Supabase + Email a Cliente y Owner + Telegram
         code = save_appointment(
             name=name, phone=phone, email=email, address=address, status="Cliente Web", 
             diagnosis=diagnosis, materials=materials, is_emergency=is_emergency, 
