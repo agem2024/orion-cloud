@@ -1,4 +1,4 @@
-﻿import os
+import os
 import logging
 import httpx
 import re
@@ -943,7 +943,7 @@ try:
 except Exception as e:
     logger.error(f"Error initializing Gemini GenAI Client: {e}")
 
-MODEL = "gemini-2.0-flash-exp"
+MODEL = "gemini-2.5-flash"
 
 SYSTEM_MESSAGE_MULTILINGUAL = """You are Nekon, the Master AI Dispatcher for Morales Plumbing (San Jose, CA).
 You are a highly professional, natural-sounding human employee, not a robot.
