@@ -1,43 +1,51 @@
-"""
-Chatwoot & Evolution API Webhook Gateway (FastAPI)
-Conecta los canales de texto (WhatsApp, Web, Telegram) al Motor V9.1.
-"""
-from fastapi import FastAPI, Request, HTTPException
+﻿from fastapi import FastAPI, Request
 import logging
 from sofia_v9_app import SofiaLinV9Engine
+import requests
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+TELEGRAM_BOT_TOKEN = os.getenv('TELEGRAM_BOT_TOKEN')
 
 app = FastAPI(title="Sofia Lin V9 Omnichannel Gateway")
 logger = logging.getLogger("OmnichannelGateway")
 engine = SofiaLinV9Engine()
 
-@app.post("/webhook/chatwoot")
-async def chatwoot_webhook(request: Request):
-    """
-    Recibe eventos de Chatwoot (mensajes entrantes de clientes).
-    """
+def send_telegram_message(chat_id, text):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+    payload = {
+        "chat_id": chat_id,
+        "text": text
+    }
+    try:
+        requests.post(url, json=payload)
+    except Exception as e:
+        logger.error(f"Error sending telegram message: {e}")
+
+@app.post("/webhook/telegram")
+async def telegram_webhook(request: Request):
     payload = await request.json()
     
-    # Solo procesar mensajes de clientes (no de agentes humanos)
-    if payload.get("event") == "message_created" and payload.get("message_type") == "incoming":
-        conversation_id = payload.get("conversation", {}).get("id")
-        content = payload.get("content", "")
-        sender = payload.get("sender", {}).get("phone_number", "Unknown")
+    if "message" in payload and "text" in payload["message"]:
+        chat_id = payload["message"]["chat"]["id"]
+        text = payload["message"]["text"]
         
-        logger.info(f"Nuevo mensaje de texto de {sender}: {content}")
+        logger.info(f"Nuevo mensaje de Telegram de {chat_id}: {text}")
         
-        # Enviar al motor V9.1 (reutilizando la misma lógica de voz, adaptada a texto)
         call_data = {
-            "caller_id": sender,
-            "transcript": content,
-            "channel": "text"
+            "caller_id": str(chat_id),
+            "transcript": text,
+            "channel": "telegram"
         }
         
         result = engine.process_incoming_call(call_data)
+        reply_text = result.get("audio_response_text", "No response generated.")
         
-        # Aquí se ejecutaría la lógica para hacer el POST de respuesta hacia la API de Chatwoot
-        logger.info(f"Respuesta de Sofia V9.1: {result.get('audio_response_text')}")
+        # Enviar la respuesta real de vuelta al usuario en Telegram
+        send_telegram_message(chat_id, reply_text)
         
-        return {"status": "processed", "reply": result.get("audio_response_text")}
+        return {"status": "processed"}
         
     return {"status": "ignored"}
 
