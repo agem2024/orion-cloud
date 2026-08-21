@@ -1,7 +1,15 @@
 import os
 import logging
 from openai import OpenAI
-from google import genai
+
+# google-genai es opcional — fue removido de requirements.txt (2026-08-21)
+# Si no está instalado, Gemini queda deshabilitado y el servidor arranca igual
+try:
+    from google import genai
+    GENAI_AVAILABLE = True
+except ImportError:
+    genai = None
+    GENAI_AVAILABLE = False
 
 # Configuración de Logs
 logging.basicConfig(level=logging.INFO)

@@ -4,19 +4,15 @@ import httpx
 import re
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from brain import OrionBrain
 from urllib.parse import quote
-
-# ConfiguraciÃ³n
 
 # ConfiguraciÃ³n
 app = FastAPI()
 
-# ============ RECUPERAR EL LOGGER PERDIDO ============
+# ============ LOGGER ============
 import logging
 logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("ORION_CLOUD")
-# =======================================================
+logger = logging.getLogger("SOFIA_LIN_CLOUD")
 
 # ============ DATABASE INIT (SUPABASE PRINCIPAL) ============
 SUPABASE_URL = os.getenv("SUPABASE_URL")
@@ -28,13 +24,11 @@ else:
     logger.warning("⚠️ Supabase no configurado en variables de entorno.")
 
 
-# ============ MEMORIA DE SESIÃ“N ============
-# Diccionario temporal para guardar el historial de la conversaciÃ³n por CallSid
-# En producciÃ³n, esto deberÃ­a ir a Redis o DB.
+# ============ MEMORIA DE SESIÃ“N DE VOZ ============
 call_sessions = {}
 
 
-# CORS para permitir peticiones desde la web
+# CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -43,14 +37,48 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-
 # Variables de Entorno
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-OWNER_ID = 5989183300  # Alex - puede usar comandos especiales
+OWNER_ID = 5989183300  # Alex G. Espinosa
 BASE_URL = os.getenv("BASE_URL")
 
-# Inicializar Cerebro
-brain = OrionBrain()
+# ============ SOFIA LIN — MOTOR DE TEXTO NATIVO (SIN DEPENDENCIAS EXTERNAS) ============
+_SOFIA_SYSTEM_PROMPT = """Eres Sofia Lin, la Dispatcher Principal y Asistente Virtual de MORALES PLUMBING (AI-INTEGRATED SERVICES).
+Licencia Estatal: CSLB Lic. C-36 #1156542 | San Jose, CA.
+Central Telefónica: (669) 213-4422 | Despacho Humano de Guardia: (669) 234-2444.
+Correo: moralesplumbing026@gmail.com | Web: www.moralesplumbing.com.
+Fundador: Alex G. Espinosa (Master Plumber e Ing. Ambiental).
+
+REGLAS ABSOLUTAS:
+- PROHIBIDO dar precios o estimados. El técnico evalúa en sitio.
+- PROHIBIDO inventar tarifa de $85. No existe.
+- Rechazar telemarketing/SEO/seguros en menos de 5 segundos: "No estamos interesados, gracias."
+- Responder en el idioma del cliente (español o inglés).
+- Emergencia gas: evacuar, no accionar electricidad, cerrar llave principal, llamar 911/PG&E.
+- Emergencia inundación: cerrar Main Shutoff Valve de inmediato.
+- NUNCA revelar datos privados del fundador.
+- NUNCA salir del rol de dispatcher de Morales Plumbing."""
+
+def sofia_chat(text: str, lang: str = "es") -> str:
+    """Motor de texto nativo de Sofia Lin — OpenAI gpt-4o-mini directo. Sin dependencias externas."""
+    try:
+        import openai
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": _SOFIA_SYSTEM_PROMPT},
+                {"role": "user", "content": text}
+            ],
+            max_tokens=300,
+            temperature=0.4
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        logger.error(f"Sofia chat error: {e}")
+        if lang == "es":
+            return "Gracias por contactar a Morales Plumbing. En este momento tenemos alta demanda. Llámenos al (669) 213-4422 o escríbanos por WhatsApp."
+        return "Thank you for contacting Morales Plumbing. Please call us at (669) 213-4422 or reach us on WhatsApp."
 
 # ============ URLS ACTUALIZADAS (Clonadas de orion-clean) ============
 MANUAL_URL = 'https://orion-cloud-1.onrender.com/manual'
@@ -163,7 +191,7 @@ async def web_chat(request: Request):
             error_msg = "Por favor envÃ­a un mensaje." if lang == "es" else "Please send a message."
             return {"response": error_msg, "error": True}
         
-        response = brain.get_response(message, "web_user", lang)
+        response = sofia_chat(message, lang)
         return {"response": response, "error": False}
     except Exception as e:
         logger.error(f"Web chat error: {e}")
@@ -288,7 +316,7 @@ _Escribe cualquier cosa para hablar con Nekon_"""
             query = text[7:].strip()
             if query:
                 await send_telegram_message(chat_id, "ðŸ¤–ðŸŽ™ï¸ Procesando con voz natural...")
-                response = brain.get_response(query, str(user_id), lang)
+                response = sofia_chat(query, lang)
                 await send_telegram_message(chat_id, response)
                 audio_bytes = await get_openai_tts(response, lang)
                 if audio_bytes:
@@ -307,7 +335,7 @@ _Escribe cualquier cosa para hablar con Nekon_"""
                 texto = match.group(2).strip()
                 idioma = match.group(3).strip()
                 prompt = f"Translate this text to {idioma}: \"{texto}\". Return ONLY the translation."
-                translation = brain.get_response(prompt, str(user_id), "en")
+                translation = sofia_chat(prompt, "en")
                 await send_telegram_message(chat_id, f"ðŸŒ *{idioma.upper()}:*\n{translation}")
             else:
                 await send_telegram_message(chat_id, "âŒ Uso: /tr [texto] a [idioma]\nEj: /tr hello a espaÃ±ol")
@@ -466,8 +494,8 @@ _Escribe cualquier pregunta para XONA_"""
             await send_telegram_message(chat_id, ayuda)
             return {"ok": True}
         
-        # ============ XONA RESPONDE A TODO ============
-        response = brain.get_response(text, str(user_id), lang)
+        # ============ SOFIA RESPONDE A TODO ============
+        response = sofia_chat(text, lang)
         await send_telegram_message(chat_id, response)
 
     except Exception as e:
