@@ -18,28 +18,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("ORION_CLOUD")
 # =======================================================
 
-# Firebase Init
-import firebase_admin
-from firebase_admin import credentials, firestore
-import json
+# ============ DATABASE INIT (SUPABASE PRINCIPAL) ============
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
-db = None
-try:
-    if not firebase_admin._apps:
-        # Intenta usar la variable de entorno de Render PRIMERO
-        firebase_creds_env = os.environ.get("FIREBASE_CREDENTIALS")
-        if firebase_creds_env:
-            cred_dict = json.loads(firebase_creds_env)
-            cred = credentials.Certificate(cred_dict)
-        else:
-            # Si no hay variable, intenta con el archivo local
-            cred = credentials.Certificate('serviceAccountKey.json')
-            
-        firebase_admin.initialize_app(cred)
-    db = firestore.client()
-    logger.info("Firebase Firestore inicializado correctamente.")
-except Exception as e:
-    logger.error(f"Error inicializando Firebase (funcionando sin DB): {e}")
+if SUPABASE_URL and SUPABASE_KEY:
+    logger.info("✅ Supabase DB configurado como Base de Datos Principal.")
+else:
+    logger.warning("⚠️ Supabase no configurado en variables de entorno.")
 
 
 # ============ MEMORIA DE SESIÃ“N ============
@@ -632,9 +618,27 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
             "confirmed": False
         }
 
-        if db:
-            db.collection("appointments").document(code).set(appointment)
-            logger.info(f"ðŸ“… Cita guardada en FIREBASE: {name} (CÃ³digo: {code})")
+        # Guardar en Supabase (Base de Datos Principal)
+        if SUPABASE_URL and SUPABASE_KEY:
+            try:
+                headers = {
+                    "apikey": SUPABASE_KEY,
+                    "Authorization": f"Bearer {SUPABASE_KEY}",
+                    "Content-Type": "application/json",
+                    "Prefer": "return=minimal"
+                }
+                supabase_payload = {
+                    "customer_name": name,
+                    "customer_phone": phone,
+                    "service_address": address,
+                    "issue_description": diagnosis,
+                    "status": "pending",
+                    "channel": source
+                }
+                requests.post(f"{SUPABASE_URL}/rest/v1/appointments", headers=headers, json=supabase_payload, timeout=5)
+                logger.info(f"📅 Cita guardada en SUPABASE: {name} (Código: {code})")
+            except Exception as sb_e:
+                logger.error(f"Error guardando en Supabase: {sb_e}")
         else:
             appointments = []
             if os.path.exists(APPOINTMENTS_FILE):
@@ -644,7 +648,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
             appointments.append(appointment)
             with open(APPOINTMENTS_FILE, 'w') as f:
                 json.dump(appointments, f, indent=2)
-            logger.info(f"ðŸ“… Cita guardada en LOCAL (Fallback): {name} (CÃ³digo: {code})")
+            logger.info(f"📅 Cita guardada en LOCAL: {name} (Código: {code})")
 
         # Notificar por Telegram al Owner
         try:
