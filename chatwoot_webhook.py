@@ -37,28 +37,25 @@ async def telegram_webhook(request: Request):
         return {"status": "processed"}
     return {"status": "ignored"}
 
+from twilio.twiml.messaging_response import MessagingResponse
+from fastapi.responses import Response
+
 @app.post("/webhook/twilio_whatsapp")
 async def twilio_whatsapp_webhook(request: Request):
     form_data = await request.form()
     sender = form_data.get("From", "")
     content = form_data.get("Body", "")
+    to_number = form_data.get("To", "")
     
-    logger.info(f"WhatsApp Msg from {sender}: {content}")
-    result = engine.process_incoming_call({"caller_id": sender, "transcript": content, "channel": "whatsapp"})
-    reply_text = result.get("audio_response_text", "Procesando su solicitud...")
+    logger.info(f"WhatsApp/SMS Msg from {sender} to {to_number}: {content}")
     
-    if twilio_client:
-        try:
-            twilio_number = TWILIO_PHONE_NUMBER if TWILIO_PHONE_NUMBER.startswith('whatsapp:') else f"whatsapp:{TWILIO_PHONE_NUMBER}"
-            twilio_client.messages.create(
-                body=reply_text,
-                from_=twilio_number,
-                to=sender
-            )
-        except Exception as e:
-            logger.error(f"Twilio error: {e}")
+    resp = MessagingResponse()
+    if content:
+        result = engine.process_incoming_call({"caller_id": sender, "transcript": content, "channel": "whatsapp"})
+        reply_text = result.get("audio_response_text", "Gracias por contactar a Morales Plumbing. ¿En qué podemos ayudarle?")
+        resp.message(reply_text)
     
-    return {"status": "processed"}
+    return Response(content=str(resp), media_type="application/xml")
 
 if __name__ == "__main__":
     import uvicorn
