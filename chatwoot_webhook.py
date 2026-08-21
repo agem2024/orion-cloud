@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, Request
+from fastapi import Request
 import logging
 from sofia_v9_app import SofiaLinV9Engine
 from twilio.rest import Client
@@ -12,7 +12,6 @@ TWILIO_ACCOUNT_SID = os.getenv('TWILIO_ACCOUNT_SID')
 TWILIO_AUTH_TOKEN = os.getenv('TWILIO_AUTH_TOKEN')
 TWILIO_PHONE_NUMBER = os.getenv('TWILIO_PHONE_NUMBER')
 
-app = FastAPI(title="Sofia Lin V9 Omnichannel Gateway")
 logger = logging.getLogger("OmnichannelGateway")
 engine = SofiaLinV9Engine()
 

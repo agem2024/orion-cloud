@@ -42,8 +42,7 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger("Morales Plumbing_CLOUD")
+
 
 # Variables de Entorno
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
@@ -776,29 +775,6 @@ JSON:"""
             raw_json = raw_json[:-3]
         result = json.loads(raw_json.strip())
         return result
-    except Exception as e:
-        logger.error(f"Voice AI OpenAI extract error: {e}")
-        try:
-            if hasattr(brain, 'gemini_client') and brain.gemini_client:
-                gemini_response = brain.gemini_client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=prompt
-                )
-                import json
-                
-                # Clean up Gemini response in case it returns markdown blocks
-                raw_json = gemini_response.text.strip()
-                if raw_json.startswith('```json'):
-                    raw_json = raw_json[7:]
-                if raw_json.startswith('```'):
-                    raw_json = raw_json[3:]
-                if raw_json.endswith('```'):
-                    raw_json = raw_json[:-3]
-                    
-                result = json.loads(raw_json.strip())
-                return result
-        except Exception as gemini_e:
-            logger.error(f"Voice AI Gemini extract error: {gemini_e}")
         return {"is_complete": False}
 
 def ask_voice_ai(user_input: str, call_sid: str, lang: str = "es") -> str:
@@ -853,17 +829,7 @@ def ask_voice_ai(user_input: str, call_sid: str, lang: str = "es") -> str:
         return ai_response
     except Exception as e:
         logger.error(f"Voice AI OpenAI error: {e}")
-        try:
-            if hasattr(brain, 'gemini_client') and brain.gemini_client:
-                full_prompt = f"{system_msg}\n\nUSER MESSAGE: {user_input}"
-                gemini_response = brain.gemini_client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=full_prompt
-                )
-                return gemini_response.text.strip()
-        except Exception as gemini_e:
-            logger.error(f"Voice AI Gemini error: {gemini_e}")
-        return "Sorry, technical issue." if lang == "en" else "Perdona, problema tÃ©cnico."
+        return "Sorry, technical issue." if lang == "en" else "Perdona, problema técnico."
 
 # API endpoint para ver citas (accesible por otros bots)
 @app.get("/api/appointments")
@@ -935,7 +901,7 @@ INFORMACION CORPORATIVA Y REGLAS MAESTRAS INMUTABLES
 8. FLUJO DE ATENCION:
    - Atender de forma calida, empatica y profesional en el idioma del cliente (Ingles o Espanol).
    - Recopilar: Nombre del cliente, Direccion exacta del servicio, Telefono de contacto y Descripcion detallada del problema.
-   - Al tener los datos, ejecutar la herramienta gendar_cita para registrar la cita en el sistema oficial de Morales Plumbing.
+   - Al tener los datos, ejecutar la herramienta agendar_cita para registrar la cita en el sistema oficial de Morales Plumbing.
 """
 
 @app.api_route("/incoming-call", methods=["GET", "POST"])

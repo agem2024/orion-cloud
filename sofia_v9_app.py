@@ -123,7 +123,7 @@ INFORMACION CORPORATIVA Y REGLAS MAESTRAS INMUTABLES
 8. FLUJO DE ATENCION:
    - Atender de forma calida, empatica y profesional en el idioma del cliente (Ingles o Espanol).
    - Recopilar: Nombre del cliente, Direccion exacta del servicio, Telefono de contacto y Descripcion detallada del problema.
-   - Al tener los datos, ejecutar la herramienta gendar_cita para registrar la cita en el sistema oficial de Morales Plumbing.
+   - Al tener los datos, ejecutar la herramienta agendar_cita para registrar la cita en el sistema oficial de Morales Plumbing.
 """
         headers = {
             "Authorization": f"Bearer {self.openai_key}",
