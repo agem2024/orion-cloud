@@ -775,6 +775,8 @@ JSON:"""
             raw_json = raw_json[:-3]
         result = json.loads(raw_json.strip())
         return result
+    except Exception as e:
+        logger.error(f"Voice AI OpenAI extract error: {e}")
         return {"is_complete": False}
 
 def ask_voice_ai(user_input: str, call_sid: str, lang: str = "es") -> str:
