@@ -88,15 +88,17 @@ INFORMACION CORPORATIVA Y REGLAS MAESTRAS INMUTABLES
    - NUNCA divulgar datos privados del fundador ni salir del rol de dispatcher.
 
 7. FLUJO CONVERSACIONAL DE DESPACHO PASO A PASO:
-   - Responde siempre con amabilidad, calidez y profesionalismo en el idioma del cliente (Español o Inglés).
-   - Pregunta por el problema y verifica si existe alguna emergencia activa.
+   - Responde siempre con amabilidad, calidez y empatía en el idioma del cliente (Español o Inglés).
+   - Escucha la descripción del problema en el lenguaje cotidiano y natural del cliente (lo que ve, escucha o siente: ej. 'el agua no baja', 'gotea la llave', 'se sale el agua del baño', 'hace un ruido extraño'). NUNCA exijas tecnicismos ni nombres de piezas al cliente.
+   - Verifica con sutileza si existe alguna situación de emergencia o riesgo activo (fuga descontrolada, olor a gas).
    - Explica que para darle un presupuesto exacto y justo, un plomero certificado realizará la evaluación presencial en su domicilio sin costo de diagnóstico mediante nuestro Plan Free ($0/mes).
    - Recopila de forma natural y conversacional los datos necesarios:
      1. Nombre y apellido
-     2. Dirección completa (calle, número, apt, ciudad)
+     2. Dirección completa del servicio (calle, número, apt/unidad, ciudad)
      3. Teléfono de contacto
-     4. Correo electrónico (para enviarle la cotización formal por escrito)
-     5. Ventana horaria de preferencia (de las 5 oficiales)
+     4. Correo electrónico (para enviarle la confirmación y cotización formal por escrito)
+     5. Lo que ocurre en sus propias palabras (motivo de la visita)
+     6. Ventana horaria de preferencia (de las 5 oficiales: 8-10 AM, 10-12 PM, 12-2 PM, 2-4 PM, 4-6 PM)
    - Una vez recopilados los datos, el sistema generará automáticamente la confirmación formal con código MP-XXXX."""
 
 def sofia_chat(text: str, lang: str = "es") -> str:
@@ -150,7 +152,7 @@ Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta:
   "phone": "teléfono de contacto o null",
   "email": "correo electrónico o null",
   "address": "dirección completa del servicio con ciudad o null",
-  "diagnosis": "descripción clara del problema de plomería o null",
+  "diagnosis": "descripción del problema reportado por el cliente con sus propias palabras o null",
   "time_window": "ventana horaria preferida o acordada (ej. 8-10 AM, 10-12 PM, 12-2 PM, 2-4 PM, 4-6 PM, Hoy ASAP) o null",
   "is_emergency": true si es fuga grave/emergencia activa sino false,
   "is_complete": true SOLO si name, phone, address, diagnosis y time_window están todos definidos o si el cliente ya dio sus datos completos y disponibilidad, de lo contrario false
@@ -180,7 +182,7 @@ JSON:"""
             phone = appt.get("phone") or "No provisto"
             email = appt.get("email") or "No provisto"
             address = appt.get("address") or "No provisto"
-            diagnosis = appt.get("diagnosis") or "Inspección y Evaluación General"
+            diagnosis = appt.get("diagnosis") or "Evaluación e Inspección en Sitio"
             time_window = appt.get("time_window") or "Por coordinar en ventana oficial"
             is_emergency = appt.get("is_emergency", False)
 
@@ -207,7 +209,7 @@ JSON:"""
                     f"📍 *Dirección de Servicio:* {address}\n"
                     f"📞 *Teléfono:* {phone}\n"
                     f"📧 *Correo:* {email}\n"
-                    f"🛠️ *Servicio Solicitado:* {diagnosis}\n"
+                    f"🛠️ *Problema Reportado:* {diagnosis}\n"
                     f"⏰ *Ventana Horaria Asignada:* {time_window}\n"
                     f"💳 *Membresía Aplicada:* Plan Free ($0.00/mes — 0 Diagnostic Fee)\n\n"
                     f"🚗 *Próximos pasos:* Uno de nuestros plomeros certificados acudirá con su camión taller en la ventana programada. "
@@ -223,7 +225,7 @@ JSON:"""
                     f"📍 *Service Address:* {address}\n"
                     f"📞 *Phone:* {phone}\n"
                     f"📧 *Email:* {email}\n"
-                    f"🛠️ *Requested Service:* {diagnosis}\n"
+                    f"🛠️ *Reported Issue:* {diagnosis}\n"
                     f"⏰ *Assigned Time Window:* {time_window}\n"
                     f"💳 *Applied Membership:* Plan Free ($0.00/mo — $0 Diagnostic Fee)\n\n"
                     f"🚗 *Next steps:* A certified technician with a mobile workshop unit will arrive within the scheduled window. "
@@ -231,6 +233,7 @@ JSON:"""
                     f"📞 *Office:* (669) 213-4422 | *Direct Dispatch:* (669) 234-2444\n"
                     f"🌐 *Web:* www.moralesplumbing.com"
                 )
+
 
     except Exception as e:
         logger.error(f"Appointment extraction error: {e}")
