@@ -1279,12 +1279,15 @@ async def twilio_ws(websocket: WebSocket):
                             await openai_ws.send(json.dumps(initial_response))
                         
                         elif data['event'] == 'media':
-                            if openai_ws.open:
+                            try:
                                 audio_append = {
                                     "type": "input_audio_buffer.append",
                                     "audio": data['media']['payload']
                                 }
                                 await openai_ws.send(json.dumps(audio_append))
+                            except Exception as ws_err:
+                                logger.error(f"Error reenviando audio a OpenAI: {ws_err}")
+                                break
                                 
                         elif data['event'] == 'stop':
                             logger.info("⏹️ Twilio Stream Stopped")
