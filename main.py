@@ -80,6 +80,100 @@ def sofia_chat(text: str, lang: str = "es") -> str:
             return "Gracias por contactar a Morales Plumbing. En este momento tenemos alta demanda. Llámenos al (669) 213-4422 o escríbanos por WhatsApp."
         return "Thank you for contacting Morales Plumbing. Please call us at (669) 213-4422 or reach us on WhatsApp."
 
+# ============ MEMORIA DE CONVERSACIÓN POR CANAL DE TEXTO ============
+text_sessions: dict = {}  # {user_id: [{"role": ..., "content": ...}]}
+
+def sofia_text_chat(text: str, user_id: str, lang: str = "es") -> str:
+    """
+    Sofia Lin con memoria de conversación y agendamiento automático de citas.
+    Mantiene historial por usuario. Cuando recopila nombre, teléfono, dirección
+    y problema → guarda la cita en Supabase y confirma con código MP-XXXX.
+    """
+    import openai, json as _json
+
+    # Iniciar historial si no existe
+    if user_id not in text_sessions:
+        text_sessions[user_id] = [{"role": "system", "content": _SOFIA_SYSTEM_PROMPT}]
+
+    text_sessions[user_id].append({"role": "user", "content": text})
+
+    # --- Intentar extraer datos de cita del historial completo ---
+    history_text = "\n".join(
+        f"{m['role']}: {m['content']}"
+        for m in text_sessions[user_id]
+        if m["role"] != "system"
+    )
+    extract_prompt = f"""Extrae la info de cita de esta conversación. Devuelve SOLO JSON:
+{{
+  "name": "nombre del cliente o null",
+  "phone": "teléfono o null",
+  "address": "dirección completa del servicio o null",
+  "diagnosis": "descripción breve del problema o null",
+  "is_emergency": true/false,
+  "is_complete": true si name + phone + address + diagnosis están todos presentes, si no false
+}}
+Conversación:
+{history_text}
+JSON:"""
+
+    try:
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+        # Extraer datos
+        ext = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": extract_prompt}],
+            max_tokens=300,
+            temperature=0
+        )
+        raw = ext.choices[0].message.content.strip()
+        raw = raw.replace("```json", "").replace("```", "").strip()
+        appt = _json.loads(raw)
+
+        if appt.get("is_complete"):
+            code = save_appointment(
+                name=appt.get("name", "Cliente"),
+                phone=appt.get("phone", "No provisto"),
+                email="No provisto",
+                address=appt.get("address", "No provisto"),
+                status="Pendiente",
+                diagnosis=appt.get("diagnosis", "Inspección general"),
+                materials="Por evaluar en sitio",
+                is_emergency=appt.get("is_emergency", False),
+                scheduled_time="ASAP" if appt.get("is_emergency") else "Por coordinar",
+                source="telegram" if "tg_" in user_id else "whatsapp"
+            )
+            # Limpiar sesión para evitar doble guardado
+            del text_sessions[user_id]
+            if lang == "es":
+                return (f"✅ ¡Cita registrada exitosamente!\n\n"
+                        f"📋 *Código de confirmación: {code}*\n\n"
+                        f"Nuestro equipo técnico se comunicará contigo pronto para confirmar la hora exacta de la visita. "
+                        f"Cualquier consulta llámanos al (669) 213-4422.")
+            return (f"✅ Appointment booked successfully!\n\n"
+                    f"📋 *Confirmation code: {code}*\n\n"
+                    f"Our team will contact you shortly to confirm the exact visit time. "
+                    f"For any questions call us at (669) 213-4422.")
+
+    except Exception as e:
+        logger.error(f"Appointment extraction error: {e}")
+
+    # --- Respuesta conversacional con historial ---
+    try:
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=text_sessions[user_id],
+            max_tokens=300,
+            temperature=0.4
+        )
+        ai_reply = resp.choices[0].message.content.strip()
+        text_sessions[user_id].append({"role": "assistant", "content": ai_reply})
+        return ai_reply
+    except Exception as e:
+        logger.error(f"Sofia text chat error: {e}")
+        return "Gracias por contactar a Morales Plumbing. Llámenos al (669) 213-4422." if lang == "es" else "Thank you. Please call (669) 213-4422."
+
 # ============ URLS ACTUALIZADAS (Clonadas de orion-clean) ============
 MANUAL_URL = 'https://orion-cloud-1.onrender.com/manual'
 PRICEBOOK_URL = 'https://agem2024.github.io/SEGURITI-USC/pricebook-index.html'
@@ -316,7 +410,7 @@ _Escribe cualquier cosa para hablar con Nekon_"""
             query = text[7:].strip()
             if query:
                 await send_telegram_message(chat_id, "ðŸ¤–ðŸŽ™ï¸ Procesando con voz natural...")
-                response = sofia_chat(query, lang)
+                response = sofia_text_chat(query, f"tg_{user_id}", lang)
                 await send_telegram_message(chat_id, response)
                 audio_bytes = await get_openai_tts(response, lang)
                 if audio_bytes:
@@ -494,8 +588,8 @@ _Escribe cualquier pregunta para XONA_"""
             await send_telegram_message(chat_id, ayuda)
             return {"ok": True}
         
-        # ============ SOFIA RESPONDE A TODO ============
-        response = sofia_chat(text, lang)
+        # ============ SOFIA RESPONDE A TODO — CON MEMORIA Y AGENDAMIENTO ============
+        response = sofia_text_chat(text, f"tg_{user_id}", lang)
         await send_telegram_message(chat_id, response)
 
     except Exception as e:
@@ -1114,7 +1208,7 @@ async def twilio_ws(websocket: WebSocket):
             pass
 
 # --- V9 OMNICHANNEL GATEWAY INJECTION ---
-from chatwoot_webhook import telegram_webhook, twilio_whatsapp_webhook
+from chatwoot_webhook import telegram_webhook
 
 @app.post("/webhook/telegram")
 async def inject_telegram(request: Request):
@@ -1122,4 +1216,25 @@ async def inject_telegram(request: Request):
 
 @app.post("/webhook/twilio_whatsapp")
 async def inject_whatsapp(request: Request):
-    return await twilio_whatsapp_webhook(request)
+    """WhatsApp handler con memoria de conversación y agendamiento automático."""
+    from twilio.twiml.messaging_response import MessagingResponse
+    from fastapi.responses import Response as FResponse
+    try:
+        form_data = await request.form()
+        sender  = form_data.get("From", "")
+        content = form_data.get("Body", "").strip()
+        logger.info(f"WhatsApp msg from {sender}: {content}")
+
+        resp = MessagingResponse()
+        if content:
+            lang = "en" if all(ord(c) < 128 for c in content) and not any(
+                w in content.lower() for w in ["hola","gracias","quiero","necesito","ayuda","cita","plomero","agua","problema"]
+            ) else "es"
+            reply = sofia_text_chat(content, f"wa_{sender}", lang)
+            resp.message(reply)
+        return FResponse(content=str(resp), media_type="application/xml")
+    except Exception as e:
+        logger.error(f"WhatsApp handler error: {e}")
+        resp = MessagingResponse()
+        resp.message("Gracias por contactar a Morales Plumbing. Llámenos al (669) 213-4422.")
+        return FResponse(content=str(resp), media_type="application/xml")
