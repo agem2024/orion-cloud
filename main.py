@@ -790,8 +790,45 @@ def create_calendar_event(name: str, phone: str, address: str, diagnosis: str, m
     except Exception as e:
         logger.error(f"Error creando evento en Calendar: {e}")
 
+def generate_technical_dispatch_analysis(customer_issue: str) -> dict:
+    """
+    Traduce la descripción cotidiana del cliente a un informe técnico formal para el plomero:
+    - technical_diagnosis: Diagnóstico técnico preliminar conforme al California Plumbing Code (CPC).
+    - materials_and_tools: Herramientas y repuestos recomendados a bordo de la unidad móvil.
+    - safety_considerations: Protocolos de seguridad operacional, corte de válvulas y Cal/OSHA Title 8.
+    """
+    try:
+        import openai, json as _json
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        prompt = f"""Eres el Asistente Técnico y Dispatcher Maestro de MORALES PLUMBING (Lic. C-36 #1156542, San Jose CA).
+El cliente reportó el siguiente problema con sus palabras cotidianas:
+"{customer_issue}"
+
+Traduce esta información para el reporte técnico interno que recibirá el plomero en su terminal de despacho.
+Devuelve ÚNICAMENTE un JSON con:
+{{
+  "technical_diagnosis": "Diagnóstico técnico preliminar en terminología profesional de plomería bajo California Plumbing Code (CPC)",
+  "materials_and_tools": "Lista de repuestos y herramientas requeridas en el camión taller según el PriceBook oficial",
+  "safety_considerations": "Medidas de seguridad, cierre de válvulas, prevención de daños y bioseguridad Cal/OSHA Title 8"
+}}"""
+        resp = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": prompt}],
+            max_tokens=350,
+            temperature=0.2
+        )
+        raw = resp.choices[0].message.content.strip().replace("```json", "").replace("```", "").strip()
+        return _json.loads(raw)
+    except Exception as e:
+        logger.error(f"Error generando análisis técnico: {e}")
+        return {
+            "technical_diagnosis": f"Evaluación técnica en sitio: {customer_issue}",
+            "materials_and_tools": "Kit de inspección y herramientas generales de plomería C-36",
+            "safety_considerations": "Verificar válvula principal de corte de agua y aplicar EPP estándar"
+        }
+
 def save_appointment(name: str, phone: str, email: str, address: str, status: str, diagnosis: str, materials: str, is_emergency: bool, scheduled_time: str, source: str = "phone") -> str:
-    """Guarda cita en archivo JSON compartido y retorna cÃ³digo MP-XXXX"""
+    """Guarda cita en base de datos y envía reporte dual al técnico/owner (versión cliente + análisis técnico Sofia AI)"""
     import json
     import random
     from datetime import datetime
@@ -801,8 +838,14 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
     from email.mime.multipart import MIMEMultipart
     
     try:
-        # Guardar en Firestore o fallback local
         code = f"MP-{random.randint(1000, 9999)}"
+        
+        # Generar análisis técnico dual (Traducción CPC + Repuestos + Seguridad)
+        tech_data = generate_technical_dispatch_analysis(diagnosis)
+        tech_diag = tech_data.get("technical_diagnosis", diagnosis)
+        tech_mat = tech_data.get("materials_and_tools", materials)
+        tech_safety = tech_data.get("safety_considerations", "Aplicar protocolos estándar de seguridad")
+
         appointment = {
             "code": code,
             "name": name,
@@ -810,8 +853,10 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
             "email": email,
             "address": address,
             "status": status,
-            "diagnosis": diagnosis,
-            "materials": materials,
+            "customer_issue": diagnosis,
+            "technical_diagnosis": tech_diag,
+            "materials": tech_mat,
+            "safety_considerations": tech_safety,
             "is_emergency": is_emergency,
             "scheduled_time": scheduled_time,
             "source": source,
@@ -832,7 +877,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                     "customer_name": name,
                     "customer_phone": phone,
                     "service_address": address,
-                    "issue_description": diagnosis,
+                    "issue_description": f"Cliente: {diagnosis} | Técnico: {tech_diag}",
                     "status": "pending",
                     "channel": source
                 }
@@ -851,14 +896,28 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                 json.dump(appointments, f, indent=2)
             logger.info(f"📅 Cita guardada en LOCAL: {name} (Código: {code})")
 
-        # Notificar por Telegram al Owner
+        # Notificar por Telegram al Despachador / Técnico con INFORME DUAL
         try:
             tg_token = os.getenv("TELEGRAM_BOT_TOKEN")
             tg_chat = os.getenv("TELEGRAM_OWNER_ID")
             if tg_token and tg_chat:
-                tipo_t = "ðŸš¨ URGENCIA" if is_emergency else f"ðŸ“… {scheduled_time}"
-                msg_tg = f"NUEVA CITA (DISPATCHER)\n\nID: {code}\nTipo: {tipo_t}\nNombre: {name}\nTelÃ©fono: {phone}\nEmail: {email}\nDirecciÃ³n: {address}\nEstatus: {status}\n\nProblema: {diagnosis}\nMateriales Recomendados: {materials}"
-                requests.post(f"https://api.telegram.org/bot{tg_token}/sendMessage", data={"chat_id": tg_chat, "text": msg_tg})
+                tipo_t = "🚨 EMERGENCIA P1/P0" if is_emergency else f"📅 {scheduled_time}"
+                msg_tg = (
+                    f"🚨 *NUEVA ORDEN DE SERVICIO — MORALES PLUMBING* 🚨\n\n"
+                    f"📋 *Ticket ID:* `{code}` | *Prioridad:* {tipo_t}\n"
+                    f"👤 *Cliente:* {name}\n"
+                    f"📞 *Teléfono:* {phone}\n"
+                    f"📧 *Email:* {email}\n"
+                    f"📍 *Dirección:* {address}\n"
+                    f"⏰ *Ventana:* {scheduled_time}\n\n"
+                    f"🗣️ *VERSIÓN DEL CLIENTE (Palabras Cotidianas):*\n"
+                    f"\"{diagnosis}\"\n\n"
+                    f"🔬 *ANÁLISIS TÉCNICO DE DESPACHO (SOFIA AI - CPC):*\n"
+                    f"• *Diagnóstico:* {tech_diag}\n"
+                    f"• *Materiales/Herramientas a Bordo:* {tech_mat}\n"
+                    f"• *Seguridad (Cal/OSHA):* {tech_safety}"
+                )
+                requests.post(f"https://api.telegram.org/bot{tg_token}/sendMessage", data={"chat_id": tg_chat, "text": msg_tg, "parse_mode": "Markdown"})
         except Exception as e:
             logger.error(f"Error enviando Telegram: {e}")
 
@@ -871,14 +930,30 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                 server.starttls()
                 server.login(email_user, email_pass)
                 
-                # 1. Email interno al Owner
+                # 1. Email interno al Owner / Técnico con REPORTE DUAL
                 msg_owner = MIMEMultipart()
                 msg_owner['From'] = email_user
                 msg_owner['To'] = email_user
-                msg_owner['Subject'] = f"Nueva Cita - {name} ({code})"
-                body_owner = f"NUEVA CITA AGENDADA POR DISPATCHER TELEFÃ“NICO\n\nID: {code}\nNombre: {name}\nTelÃ©fono: {phone}\nEmail: {email}\nDirecciÃ³n: {address}\nEstatus: {status}\n\nDiagnÃ³stico: {diagnosis}\nMateriales MÃ­nimos Sugeridos: {materials}\nOrigen: {source}"
+                msg_owner['Subject'] = f"Nueva Orden de Trabajo - {name} ({code})"
+                body_owner = (
+                    f"MORALES PLUMBING — REPORTE DE DESPACHO TÉCNICO\n\n"
+                    f"Ticket ID: {code}\n"
+                    f"Cliente: {name}\n"
+                    f"Teléfono: {phone}\n"
+                    f"Email: {email}\n"
+                    f"Dirección: {address}\n"
+                    f"Ventana Asignada: {scheduled_time}\n"
+                    f"Origen: {source}\n\n"
+                    f"--- VERSIÓN DEL CLIENTE ---\n"
+                    f"{diagnosis}\n\n"
+                    f"--- ANÁLISIS TÉCNICO PRELIMINAR (SOFIA AI) ---\n"
+                    f"Diagnóstico CPC: {tech_diag}\n"
+                    f"Materiales Sugeridos: {tech_mat}\n"
+                    f"Consideraciones de Seguridad: {tech_safety}\n"
+                )
                 msg_owner.attach(MIMEText(body_owner, 'plain'))
                 server.sendmail(email_user, email_user, msg_owner.as_string())
+
                 
                 # 2. Email HTML al Cliente (Si dejÃ³ email)
                 if email and "@" in email:
