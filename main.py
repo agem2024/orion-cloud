@@ -1216,20 +1216,26 @@ async def twilio_ws(websocket: WebSocket):
         async with websockets.connect(openai_url, additional_headers=headers) as openai_ws:
             logger.info("🧠 Conectado a OpenAI Realtime API exitosamente")
             
-            # Configure Session with g711_ulaw (Twilio native)
+            # Configure Session with audio/pcmu (G.711 u-law nativo de Twilio)
             session_update = {
                 "type": "session.update",
                 "session": {
-                    "modalities": ["audio", "text"],
+                    "type": "realtime",
                     "instructions": SYSTEM_PROMPT_SOFIA,
-                    "voice": "shimmer",
-                    "input_audio_format": "g711_ulaw",
-                    "output_audio_format": "g711_ulaw",
-                    "turn_detection": {
-                        "type": "server_vad",
-                        "threshold": 0.5,
-                        "prefix_padding_ms": 300,
-                        "silence_duration_ms": 400
+                    "audio": {
+                        "input": {
+                            "format": {"type": "audio/pcmu"},
+                            "turn_detection": {
+                                "type": "server_vad",
+                                "threshold": 0.6,
+                                "prefix_padding_ms": 300,
+                                "silence_duration_ms": 500
+                            }
+                        },
+                        "output": {
+                            "format": {"type": "audio/pcmu"},
+                            "voice": "shimmer"
+                        }
                     },
                     "tools": [
                         {
@@ -1242,7 +1248,7 @@ async def twilio_ws(websocket: WebSocket):
                                     "nombre": {"type": "string", "description": "Nombre del cliente"},
                                     "telefono": {"type": "string", "description": "Teléfono de contacto"},
                                     "direccion": {"type": "string", "description": "Dirección del servicio"},
-                                    "problema": {"type": "string", "description": "Descripción del problema"}
+                                    "problema": {"type": "string", "description": "Descripción del problema reportado por el cliente"}
                                 },
                                 "required": ["nombre", "telefono", "direccion", "problema"]
                             }
@@ -1251,16 +1257,6 @@ async def twilio_ws(websocket: WebSocket):
                 }
             }
             await openai_ws.send(json.dumps(session_update))
-
-            # Initial Greeting Trigger
-            initial_response = {
-                "type": "response.create",
-                "response": {
-                    "modalities": ["audio", "text"],
-                    "instructions": "Greet the caller warmly: 'Thank you for calling Morales Plumbing. How can I help you today? / Gracias por llamar a Morales Plumbing, ¿en qué podemos ayudarle hoy?'"
-                }
-            }
-            await openai_ws.send(json.dumps(initial_response))
 
             async def receive_from_twilio():
                 nonlocal stream_sid
@@ -1272,6 +1268,15 @@ async def twilio_ws(websocket: WebSocket):
                         if data['event'] == 'start':
                             stream_sid = data['start']['streamSid']
                             logger.info(f"▶️ Twilio Stream Started: {stream_sid}")
+                            
+                            # Disparar saludo inicial ahora que stream_sid está listo y activo
+                            initial_response = {
+                                "type": "response.create",
+                                "response": {
+                                    "instructions": "Saluda cordialmente: 'Gracias por llamar a Morales Plumbing, le atiende Sofia Lin. ¿En qué podemos ayudarle hoy?'"
+                                }
+                            }
+                            await openai_ws.send(json.dumps(initial_response))
                         
                         elif data['event'] == 'media':
                             if openai_ws.open:
@@ -1295,16 +1300,18 @@ async def twilio_ws(websocket: WebSocket):
                         event = json.loads(raw_msg)
                         event_type = event.get("type")
                         
-                        # Audio stream chunk back to Twilio
-                        if event_type == "response.audio.delta" and stream_sid:
-                            media_msg = {
-                                "event": "media",
-                                "streamSid": stream_sid,
-                                "media": {
-                                    "payload": event.get("delta")
+                        # Audio stream chunk back to Twilio (soporta response.output_audio.delta y response.audio.delta)
+                        if event_type in ("response.output_audio.delta", "response.audio.delta") and stream_sid:
+                            delta = event.get("delta")
+                            if delta:
+                                media_msg = {
+                                    "event": "media",
+                                    "streamSid": stream_sid,
+                                    "media": {
+                                        "payload": delta
+                                    }
                                 }
-                            }
-                            await websocket.send_text(json.dumps(media_msg))
+                                await websocket.send_text(json.dumps(media_msg))
                             
                         # Handle Caller Interruption (Barge-in): Clear audio buffer on Twilio immediately!
                         elif event_type == "input_audio_buffer.speech_started" and stream_sid:
@@ -1348,7 +1355,7 @@ async def twilio_ws(websocket: WebSocket):
                     logger.error(f"OpenAI Realtime receive error: {e}")
 
             await asyncio.wait_for(
-                asyncio.gather(receive_from_twilio(), receive_from_openai()),
+                asyncio.gather(receive_from_twilio(), receive_from_openai(), return_exceptions=True),
                 timeout=900
             )
             
