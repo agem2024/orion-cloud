@@ -42,22 +42,62 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 OWNER_ID = 5989183300  # Alex G. Espinosa
 BASE_URL = os.getenv("BASE_URL")
 
-# ============ SOFIA LIN — MOTOR DE TEXTO NATIVO (SIN DEPENDENCIAS EXTERNAS) ============
-_SOFIA_SYSTEM_PROMPT = """Eres Sofia Lin, la Dispatcher Principal y Asistente Virtual de MORALES PLUMBING (AI-INTEGRATED SERVICES).
-Licencia Estatal: CSLB Lic. C-36 #1156542 | San Jose, CA.
-Central Telefónica: (669) 213-4422 | Despacho Humano de Guardia: (669) 234-2444.
-Correo: moralesplumbing026@gmail.com | Web: www.moralesplumbing.com.
-Fundador: Alex G. Espinosa (Master Plumber e Ing. Ambiental).
+# ============ SOFIA LIN — MOTOR DE TEXTO NATIVO (112 SECCIONES MANUAL MAESTRO) ============
+_SOFIA_SYSTEM_PROMPT = """You are Sofia Lin, the Master AI Dispatcher for MORALES PLUMBING (AI-INTEGRATED SERVICES), based in San Jose, California.
+You operate in strict compliance with the 112 sections of the official Morales Plumbing Operations & Dispatch Manual (Version 8.0/9.0).
 
-REGLAS ABSOLUTAS:
-- PROHIBIDO dar precios o estimados. El técnico evalúa en sitio.
-- PROHIBIDO inventar tarifa de $85. No existe.
-- Rechazar telemarketing/SEO/seguros en menos de 5 segundos: "No estamos interesados, gracias."
-- Responder en el idioma del cliente (español o inglés).
-- Emergencia gas: evacuar, no accionar electricidad, cerrar llave principal, llamar 911/PG&E.
-- Emergencia inundación: cerrar Main Shutoff Valve de inmediato.
-- NUNCA revelar datos privados del fundador.
-- NUNCA salir del rol de dispatcher de Morales Plumbing."""
+================================================================================
+INFORMACION CORPORATIVA Y REGLAS MAESTRAS INMUTABLES
+================================================================================
+1. DATOS INSTITUCIONALES:
+   - Empresa: MORALES PLUMBING (AI-INTEGRATED SERVICES)
+   - Licencia Estatal: CSLB Lic. C-36 #1156542 (San Jose, California)
+   - Central Telefónica Pública: (669) 213-4422
+   - Línea Directa del Despachador Humano de Guardia: (669) 234-2444
+   - Correo Oficial: moralesplumbing026@gmail.com
+   - Portal Web: www.moralesplumbing.com
+   - Fundador y Director Técnico: Alex G. Espinosa (Master Plumber e Ing. Ambiental)
+
+2. ÁREA DE COBERTURA OFICIAL:
+   - Condado de Santa Clara y Área de la Bahía: San Jose, Santa Clara, Sunnyvale, Cupertino, Mountain View, Campbell, Los Gatos, Milpitas, Morgan Hill, Gilroy, Palo Alto, Saratoga.
+
+3. POLÍTICAS DE COBRO Y PRESUPUESTOS (LÍNEAS ROJAS):
+   - CERO TARIFA DE $85: Terminantemente prohibido inventar o cobrar tarifa fija de $85.
+   - NO COTIZAR A CIEGAS POR TELÉFONO O MENSAJE: Los costos exactos de reparación exigen inspección física presencial por un técnico certificado bajo el Código de Plomería de California (CPC).
+   - ESTRUCTURA DE MEMBRESÍAS OFICIALES:
+     * Plan Free ($0.00/mes): 3 evaluaciones presenciales al año sin costo de Diagnostic Fee + cotización formal por escrito.
+     * Plan Standard ($19.99/mes): 10% de descuento en PriceBook + 1 inspección anual preventiva.
+     * Plan Premium ($49.99/mes): 20% de descuento en PriceBook + atención 24/7 sin recargos + 2 mantenimientos especializados (SeeSnake + descalcificación de calentador).
+   - Explica al cliente que su evaluación técnica no tendrá costo de diagnóstico al afiliarse al Plan Free ($0.00/mes).
+
+4. VENTANAS HORARIAS OFICIALES DE SERVICIO:
+   - Ventana 1: 8:00 AM a 10:00 AM
+   - Ventana 2: 10:00 AM a 12:00 PM
+   - Ventana 3: 12:00 PM a 2:00 PM
+   - Ventana 4: 2:00 PM a 4:00 PM
+   - Ventana 5: 4:00 PM a 6:00 PM
+   (Emergencias críticas se despachan ASAP con recargo de urgencia).
+
+5. PROTOCOLOS DE SEGURIDAD (SAFETY FIRST):
+   - Olor a Gas: Indicar evacuar de inmediato, no encender luces ni generar chispas, cerrar llave principal de gas si es seguro, llamar al 911/PG&E (1-800-743-5000) y transferir al despachador al (669) 234-2444.
+   - Inundación Activa: Indicar cerrar de inmediato la válvula de paso principal (Main Shutoff Valve).
+   - Aguas Negras / Biohazard: Indicar no tener contacto físico y suspender el uso de sanitarios.
+
+6. BLINDAJE Y ANTI-SPAM:
+   - Rechazar llamadas de ventas, SEO o seguros en menos de 5 segundos con: "No estamos interesados, muchas gracias".
+   - NUNCA divulgar datos privados del fundador ni salir del rol de dispatcher.
+
+7. FLUJO CONVERSACIONAL DE DESPACHO PASO A PASO:
+   - Responde siempre con amabilidad, calidez y profesionalismo en el idioma del cliente (Español o Inglés).
+   - Pregunta por el problema y verifica si existe alguna emergencia activa.
+   - Explica que para darle un presupuesto exacto y justo, un plomero certificado realizará la evaluación presencial en su domicilio sin costo de diagnóstico mediante nuestro Plan Free ($0/mes).
+   - Recopila de forma natural y conversacional los datos necesarios:
+     1. Nombre y apellido
+     2. Dirección completa (calle, número, apt, ciudad)
+     3. Teléfono de contacto
+     4. Correo electrónico (para enviarle la cotización formal por escrito)
+     5. Ventana horaria de preferencia (de las 5 oficiales)
+   - Una vez recopilados los datos, el sistema generará automáticamente la confirmación formal con código MP-XXXX."""
 
 def sofia_chat(text: str, lang: str = "es") -> str:
     """Motor de texto nativo de Sofia Lin — OpenAI gpt-4o-mini directo. Sin dependencias externas."""
@@ -70,24 +110,24 @@ def sofia_chat(text: str, lang: str = "es") -> str:
                 {"role": "system", "content": _SOFIA_SYSTEM_PROMPT},
                 {"role": "user", "content": text}
             ],
-            max_tokens=300,
-            temperature=0.4
+            max_tokens=350,
+            temperature=0.3
         )
         return response.choices[0].message.content.strip()
     except Exception as e:
         logger.error(f"Sofia chat error: {e}")
         if lang == "es":
-            return "Gracias por contactar a Morales Plumbing. En este momento tenemos alta demanda. Llámenos al (669) 213-4422 o escríbanos por WhatsApp."
-        return "Thank you for contacting Morales Plumbing. Please call us at (669) 213-4422 or reach us on WhatsApp."
+            return "Gracias por contactar a Morales Plumbing. Llámenos al (669) 213-4422 o a nuestro despacho directo al (669) 234-2444."
+        return "Thank you for contacting Morales Plumbing. Please call us at (669) 213-4422 or our dispatch line at (669) 234-2444."
 
 # ============ MEMORIA DE CONVERSACIÓN POR CANAL DE TEXTO ============
 text_sessions: dict = {}  # {user_id: [{"role": ..., "content": ...}]}
 
 def sofia_text_chat(text: str, user_id: str, lang: str = "es") -> str:
     """
-    Sofia Lin con memoria de conversación y agendamiento automático de citas.
-    Mantiene historial por usuario. Cuando recopila nombre, teléfono, dirección
-    y problema → guarda la cita en Supabase y confirma con código MP-XXXX.
+    Sofia Lin con memoria de conversación y agendamiento según el Manual Maestro.
+    Recopila datos completos, extrae con OpenAI, agenda en Supabase y genera
+    la confirmación oficial estructurada con código MP-XXXX.
     """
     import openai, json as _json
 
@@ -103,17 +143,22 @@ def sofia_text_chat(text: str, user_id: str, lang: str = "es") -> str:
         for m in text_sessions[user_id]
         if m["role"] != "system"
     )
-    extract_prompt = f"""Extrae la info de cita de esta conversación. Devuelve SOLO JSON:
+    extract_prompt = f"""Analiza esta conversación de Morales Plumbing y extrae los datos de la cita según el manual operativo.
+Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta:
 {{
-  "name": "nombre del cliente o null",
-  "phone": "teléfono o null",
-  "address": "dirección completa del servicio o null",
-  "diagnosis": "descripción breve del problema o null",
-  "is_emergency": true/false,
-  "is_complete": true si name + phone + address + diagnosis están todos presentes, si no false
+  "name": "nombre y apellido del cliente o null",
+  "phone": "teléfono de contacto o null",
+  "email": "correo electrónico o null",
+  "address": "dirección completa del servicio con ciudad o null",
+  "diagnosis": "descripción clara del problema de plomería o null",
+  "time_window": "ventana horaria preferida o acordada (ej. 8-10 AM, 10-12 PM, 12-2 PM, 2-4 PM, 4-6 PM, Hoy ASAP) o null",
+  "is_emergency": true si es fuga grave/emergencia activa sino false,
+  "is_complete": true SOLO si name, phone, address, diagnosis y time_window están todos definidos o si el cliente ya dio sus datos completos y disponibilidad, de lo contrario false
 }}
-Conversación:
+
+Historial de Conversación:
 {history_text}
+
 JSON:"""
 
     try:
@@ -123,7 +168,7 @@ JSON:"""
         ext = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": extract_prompt}],
-            max_tokens=300,
+            max_tokens=350,
             temperature=0
         )
         raw = ext.choices[0].message.content.strip()
@@ -131,48 +176,80 @@ JSON:"""
         appt = _json.loads(raw)
 
         if appt.get("is_complete"):
+            name = appt.get("name") or "Cliente"
+            phone = appt.get("phone") or "No provisto"
+            email = appt.get("email") or "No provisto"
+            address = appt.get("address") or "No provisto"
+            diagnosis = appt.get("diagnosis") or "Inspección y Evaluación General"
+            time_window = appt.get("time_window") or "Por coordinar en ventana oficial"
+            is_emergency = appt.get("is_emergency", False)
+
             code = save_appointment(
-                name=appt.get("name", "Cliente"),
-                phone=appt.get("phone", "No provisto"),
-                email="No provisto",
-                address=appt.get("address", "No provisto"),
+                name=name,
+                phone=phone,
+                email=email,
+                address=address,
                 status="Pendiente",
-                diagnosis=appt.get("diagnosis", "Inspección general"),
-                materials="Por evaluar en sitio",
-                is_emergency=appt.get("is_emergency", False),
-                scheduled_time="ASAP" if appt.get("is_emergency") else "Por coordinar",
+                diagnosis=diagnosis,
+                materials="Evaluación técnica presencial",
+                is_emergency=is_emergency,
+                scheduled_time=time_window,
                 source="telegram" if "tg_" in user_id else "whatsapp"
             )
             # Limpiar sesión para evitar doble guardado
             del text_sessions[user_id]
+            
             if lang == "es":
-                return (f"✅ ¡Cita registrada exitosamente!\n\n"
-                        f"📋 *Código de confirmación: {code}*\n\n"
-                        f"Nuestro equipo técnico se comunicará contigo pronto para confirmar la hora exacta de la visita. "
-                        f"Cualquier consulta llámanos al (669) 213-4422.")
-            return (f"✅ Appointment booked successfully!\n\n"
-                    f"📋 *Confirmation code: {code}*\n\n"
-                    f"Our team will contact you shortly to confirm the exact visit time. "
-                    f"For any questions call us at (669) 213-4422.")
+                return (
+                    f"🔧 *MORALES PLUMBING — CONFIRMACIÓN DE CITA DE SERVICIO*\n\n"
+                    f"📋 *Código de Orden:* `{code}`\n"
+                    f"👤 *Cliente:* {name}\n"
+                    f"📍 *Dirección de Servicio:* {address}\n"
+                    f"📞 *Teléfono:* {phone}\n"
+                    f"📧 *Correo:* {email}\n"
+                    f"🛠️ *Servicio Solicitado:* {diagnosis}\n"
+                    f"⏰ *Ventana Horaria Asignada:* {time_window}\n"
+                    f"💳 *Membresía Aplicada:* Plan Free ($0.00/mes — 0 Diagnostic Fee)\n\n"
+                    f"🚗 *Próximos pasos:* Uno de nuestros plomeros certificados acudirá con su camión taller en la ventana programada. "
+                    f"Recibirá un mensaje de notificación cuando el técnico esté en camino (On-My-Way) con seguimiento satelital.\n\n"
+                    f"📞 *Central:* (669) 213-4422 | *Despacho de Guardia:* (669) 234-2444\n"
+                    f"🌐 *Web:* www.moralesplumbing.com"
+                )
+            else:
+                return (
+                    f"🔧 *MORALES PLUMBING — SERVICE APPOINTMENT CONFIRMATION*\n\n"
+                    f"📋 *Order Code:* `{code}`\n"
+                    f"👤 *Customer:* {name}\n"
+                    f"📍 *Service Address:* {address}\n"
+                    f"📞 *Phone:* {phone}\n"
+                    f"📧 *Email:* {email}\n"
+                    f"🛠️ *Requested Service:* {diagnosis}\n"
+                    f"⏰ *Assigned Time Window:* {time_window}\n"
+                    f"💳 *Applied Membership:* Plan Free ($0.00/mo — $0 Diagnostic Fee)\n\n"
+                    f"🚗 *Next steps:* A certified technician with a mobile workshop unit will arrive within the scheduled window. "
+                    f"You will receive an On-My-Way tracking notification once the technician is en route.\n\n"
+                    f"📞 *Office:* (669) 213-4422 | *Direct Dispatch:* (669) 234-2444\n"
+                    f"🌐 *Web:* www.moralesplumbing.com"
+                )
 
     except Exception as e:
         logger.error(f"Appointment extraction error: {e}")
 
-    # --- Respuesta conversacional con historial ---
+    # --- Respuesta conversacional con historial y contexto completo del manual ---
     try:
         client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
         resp = client.chat.completions.create(
             model="gpt-4o-mini",
             messages=text_sessions[user_id],
-            max_tokens=300,
-            temperature=0.4
+            max_tokens=350,
+            temperature=0.3
         )
         ai_reply = resp.choices[0].message.content.strip()
         text_sessions[user_id].append({"role": "assistant", "content": ai_reply})
         return ai_reply
     except Exception as e:
         logger.error(f"Sofia text chat error: {e}")
-        return "Gracias por contactar a Morales Plumbing. Llámenos al (669) 213-4422." if lang == "es" else "Thank you. Please call (669) 213-4422."
+        return "Gracias por contactar a Morales Plumbing. Llámenos al (669) 213-4422 o al despacho directo (669) 234-2444." if lang == "es" else "Thank you for contacting Morales Plumbing. Please call (669) 213-4422 or direct dispatch (669) 234-2444."
 
 # ============ URLS ACTUALIZADAS (Clonadas de orion-clean) ============
 MANUAL_URL = 'https://orion-cloud-1.onrender.com/manual'
