@@ -1220,26 +1220,24 @@ async def twilio_ws(websocket: WebSocket):
         async with websockets.connect(openai_url, additional_headers=headers) as openai_ws:
             logger.info("🧠 Conectado a OpenAI Realtime API exitosamente")
             
-            # Configure Session with audio/pcmu (G.711 u-law nativo) + VAD Anti-Ruido + Voz Natural 'marin'
+            # Configure Session with G.711 u-law nativo + VAD Anti-Ruido + Voz Natural 'marin'
             session_update = {
                 "type": "session.update",
                 "session": {
-                    "type": "realtime",
+                    "modalities": ["audio", "text"],
                     "instructions": SYSTEM_PROMPT_SOFIA,
-                    "audio": {
-                        "input": {
-                            "format": {"type": "audio/pcmu"},
-                            "turn_detection": {
-                                "type": "server_vad",
-                                "threshold": 0.85,  # Alto rechazo de ruido ambiental / TV / música
-                                "prefix_padding_ms": 300,
-                                "silence_duration_ms": 800  # Pausa humana natural sin cortes prematuros
-                            }
-                        },
-                        "output": {
-                            "format": {"type": "audio/pcmu"},
-                            "voice": "marin"  # Voz ultra-natural y humana de Realtime 2.1
-                        }
+                    "voice": "marin",
+                    "input_audio_format": "g711_ulaw",
+                    "output_audio_format": "g711_ulaw",
+                    "input_audio_transcription": {
+                        "model": "whisper-1"
+                    },
+                    "turn_detection": {
+                        "type": "server_vad",
+                        "threshold": 0.88,  # Alta discriminación acústica para ignorar TV, radio y estática
+                        "prefix_padding_ms": 300,
+                        "silence_duration_ms": 1000, # 1000ms de silencio para pausas humanas naturales sin cortes prematuros
+                        "create_response": True
                     },
                     "tools": [
                         {
@@ -1261,6 +1259,8 @@ async def twilio_ws(websocket: WebSocket):
                 }
             }
             await openai_ws.send(json.dumps(session_update))
+
+            is_speaking = False
 
             async def receive_from_twilio():
                 nonlocal stream_sid
@@ -1302,6 +1302,7 @@ async def twilio_ws(websocket: WebSocket):
                     logger.error(f"Twilio receive error: {e}")
 
             async def receive_from_openai():
+                nonlocal is_speaking
                 try:
                     async for raw_msg in openai_ws:
                         event = json.loads(raw_msg)
@@ -1309,6 +1310,7 @@ async def twilio_ws(websocket: WebSocket):
                         
                         # Audio stream chunk back to Twilio (soporta response.output_audio.delta y response.audio.delta)
                         if event_type in ("response.output_audio.delta", "response.audio.delta") and stream_sid:
+                            is_speaking = True
                             delta = event.get("delta")
                             if delta:
                                 media_msg = {
@@ -1319,11 +1321,20 @@ async def twilio_ws(websocket: WebSocket):
                                     }
                                 }
                                 await websocket.send_text(json.dumps(media_msg))
+                        
+                        elif event_type in ("response.output_audio.done", "response.audio.done", "response.done"):
+                            is_speaking = False
                             
-                        # Handle Caller Interruption (Barge-in): Clear audio buffer on Twilio immediately!
+                        # Handle Caller Interruption (Barge-in): Solo pausar si Sofia está hablando y el usuario interrumpe directamente
                         elif event_type == "input_audio_buffer.speech_started" and stream_sid:
-                            logger.info("🗣️ Interrupción detectada: silenciando audio previo en Twilio")
-                            await websocket.send_text(json.dumps({"event": "clear", "streamSid": stream_sid}))
+                            if is_speaking:
+                                logger.info("🗣️ Interrupción vocal humana confirmada: pausando audio en Twilio y cancelando respuesta activa")
+                                is_speaking = False
+                                await websocket.send_text(json.dumps({"event": "clear", "streamSid": stream_sid}))
+                                try:
+                                    await openai_ws.send(json.dumps({"type": "response.cancel"}))
+                                except:
+                                    pass
                             
                         # Function / Tool Calling
                         elif event_type == "response.function_call_arguments.done":
