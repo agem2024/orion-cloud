@@ -1345,6 +1345,7 @@ async def twilio_ws(websocket: WebSocket):
                             logger.info(f"🔔 Tool Executed: {func_name} with {arguments}")
                             
                             if func_name == "agendar_cita":
+                                is_booking_warranted = True
                                 save_appointment(
                                     name=arguments.get("nombre", "Cliente Desconocido"),
                                     phone=arguments.get("telefono", "Sin Teléfono"),
@@ -1372,14 +1373,36 @@ async def twilio_ws(websocket: WebSocket):
                 except Exception as e:
                     logger.error(f"OpenAI Realtime receive error: {e}")
 
-            await asyncio.wait_for(
-                asyncio.gather(receive_from_twilio(), receive_from_openai(), return_exceptions=True),
-                timeout=900
+            # Cortafuegos de tiempo dinámico: Límite base 5 min (300s) + Extensión máx 5 min (600s) solo si amerita
+            call_start_time = asyncio.get_event_loop().time()
+            is_booking_warranted = False
+            is_call_extended = False
+
+            async def call_duration_guard():
+                nonlocal is_call_extended
+                while True:
+                    await asyncio.sleep(5)
+                    elapsed = asyncio.get_event_loop().time() - call_start_time
+                    if elapsed >= 300 and not is_call_extended:
+                        if is_booking_warranted:
+                            logger.info("⏱️ Llamada activa con gestión de cita justificada: extendiendo 5 minutos adicionales (Máx 10 min).")
+                            is_call_extended = True
+                        else:
+                            logger.info("⏳ Llamada alcanzó el límite estándar de 5 minutos (300s). Finalizando para optimizar recursos.")
+                            await websocket.close()
+                            break
+                    elif elapsed >= 600:
+                        logger.info("⏳ Llamada alcanzó el límite máximo extendido de 10 minutos (600s). Finalizando.")
+                        await websocket.close()
+                        break
+
+            await asyncio.gather(
+                receive_from_twilio(),
+                receive_from_openai(),
+                call_duration_guard(),
+                return_exceptions=True
             )
             
-    except asyncio.TimeoutError:
-        logger.info("⏳ Llamada alcanzó duración máxima (15 min).")
-        await websocket.close()
     except Exception as e:
         logger.error(f"Error en OpenAI Realtime Voice Bridge: {e}")
         try:
