@@ -2,15 +2,19 @@ import os
 import logging
 import httpx
 import re
+from dotenv import load_dotenv
+
+# Cargar variables de entorno inmediatamente al arrancar
+load_dotenv()
+
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from urllib.parse import quote
 
-# ConfiguraciÃ³n
+# Configuración
 app = FastAPI()
 
 # ============ LOGGER ============
-import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger("SOFIA_LIN_CLOUD")
 
