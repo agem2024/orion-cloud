@@ -832,7 +832,7 @@ Devuelve ÚNICAMENTE un JSON con:
   "materials_and_tools": "Lista de repuestos y herramientas requeridas en el camión taller según el PriceBook oficial",
   "safety_considerations": "Medidas de seguridad, cierre de válvulas, prevención de daños y bioseguridad Cal/OSHA Title 8"
 }}"""
-        raw = call_llm_hybrid(prompt, "Eres un analista técnico de plomería y redactor de JSON estricto.", max_tokens=350, json_mode=True)
+        raw = call_llm_hybrid(prompt, "Eres un analista técnico de plomería y redactor de JSON estricto.", max_tokens=1500, json_mode=True)
         raw = raw.replace("```json", "").replace("```", "").strip()
         return _json.loads(raw)
     except Exception as e:
@@ -1458,8 +1458,24 @@ async def voice_process_turn(request: Request):
     is_english = any(w in speech_lower for w in en_words) and not any(w in speech_lower for w in es_words)
     lang = "en" if is_english else "es"
 
-    # 3. Transferencia a Humano si lo solicita expresamente
-    transfer_triggers = ["humano", "persona", "operador", "dueño", "tecnico en vivo", "hablar con alguien", "human", "agent", "representative", "operator", "alex"]
+    # 3. Transferencia a Despachador Humano / Técnico / Supervisor / Dueño (Alex)
+    transfer_triggers = [
+        # Técnicos / Despachadores / Supervisores
+        "hablar con un tecnico", "comunicame con un tecnico", "tecnico en vivo", "plomero en vivo",
+        "hablar con el supervisor", "comunicame con el supervisor", "con el supervisor",
+        "hablar con el despachador", "comunicame con el despachador", "despachador humano",
+        "hablar con una persona", "hablar con un humano", "pasar a un humano", "atencion humana",
+        "hablar con alguien", "comunicame con alguien", "operador en vivo",
+        # Dueño / Fundador / CEO (Alex) - Frases compuestas explícitas
+        "hablar con alex", "comunicame con alex", "transferir con alex", "pasar a alex",
+        "alex el dueño", "alex el ceo", "con el dueño alex", "con el señor alex",
+        "hablar con el dueño", "comunicame con el dueño", "hablar con el ceo", "comunicame con el ceo",
+        # Idioma Inglés
+        "speak to a human", "talk to a person", "talk to human", "speak with a technician",
+        "speak to supervisor", "talk to supervisor", "transfer to supervisor", "live agent",
+        "representative", "live operator", "talk to the owner", "speak to the owner",
+        "talk to alex the owner", "speak to alex", "talk to ceo"
+    ]
     if any(t in speech_lower for t in transfer_triggers):
         response.say(
             "<prosody rate=\"90%\">Con mucho gusto, le transfiero de inmediato con nuestro despachador de guardia. Un momento por favor.</prosody>" if lang == "es" else "<prosody rate=\"90%\">Transferring you to our direct dispatch line right now. Please hold.</prosody>",
