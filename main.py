@@ -997,7 +997,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                 json.dump(appointments, f, indent=2, ensure_ascii=False)
             logger.info(f"📅 Cita guardada en PERSISTENCIA LOCAL: {name} (Código: {code})")
 
-        # Notificar por Telegram al Despachador / Técnico con INFORME DUAL
+        # 1. Notificar por Telegram al Despachador / Técnico con INFORME DUAL
         try:
             tg_token = os.getenv("TELEGRAM_BOT_TOKEN")
             tg_chat = os.getenv("TELEGRAM_OWNER_ID")
@@ -1011,31 +1011,43 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                     f"📧 *Email:* {email}\n"
                     f"📍 *Dirección:* {address}\n"
                     f"⏰ *Ventana:* {scheduled_time}\n\n"
-                    f"🗣️ *VERSIÓN DEL CLIENTE (Palabras Cotidianas):*\n"
+                    f"🗣️ *VERSIÓN DEL CLIENTE:*\n"
                     f"\"{diagnosis}\"\n\n"
                     f"🔬 *ANÁLISIS TÉCNICO DE DESPACHO (SOFIA AI - CPC):*\n"
                     f"• *Diagnóstico:* {tech_diag}\n"
-                    f"• *Materiales/Herramientas a Bordo:* {tech_mat}\n"
+                    f"• *Materiales/Herramientas:* {tech_mat}\n"
                     f"• *Seguridad (Cal/OSHA):* {tech_safety}"
                 )
-                requests.post(f"https://api.telegram.org/bot{tg_token}/sendMessage", data={"chat_id": tg_chat, "text": msg_tg, "parse_mode": "Markdown"})
+                session_tg = requests.Session()
+                r_tg = session_tg.post(
+                    f"https://api.telegram.org/bot{tg_token}/sendMessage",
+                    json={"chat_id": tg_chat, "text": msg_tg, "parse_mode": "Markdown"},
+                    timeout=10
+                )
+                if r_tg.status_code != 200:
+                    session_tg.post(
+                        f"https://api.telegram.org/bot{tg_token}/sendMessage",
+                        json={"chat_id": tg_chat, "text": msg_tg},
+                        timeout=10
+                    )
+                logger.info(f"📱 Alerta enviada a Telegram con status: {r_tg.status_code}")
         except Exception as e:
             logger.error(f"Error enviando Telegram: {e}")
 
-        # Notificar por Email (Al Owner y al Cliente)
+        # 2. Notificar por Email (Al Owner y al Cliente)
         try:
             email_user = os.getenv("EMAIL_USER")
             email_pass = os.getenv("EMAIL_PASS")
             if email_user and email_pass:
-                server = smtplib.SMTP('smtp.gmail.com', 587)
+                server = smtplib.SMTP('smtp.gmail.com', 587, timeout=10)
                 server.starttls()
                 server.login(email_user, email_pass)
                 
-                # 1. Email interno al Owner / Técnico con REPORTE DUAL
+                # A. Email interno al Owner / Técnico con REPORTE DUAL
                 msg_owner = MIMEMultipart()
-                msg_owner['From'] = email_user
+                msg_owner['From'] = f"Morales Plumbing Dispatch <{email_user}>"
                 msg_owner['To'] = email_user
-                msg_owner['Subject'] = f"Nueva Orden de Trabajo - {name} ({code})"
+                msg_owner['Subject'] = f"🚨 Nueva Orden de Trabajo - {name} ({code})"
                 body_owner = (
                     f"MORALES PLUMBING — REPORTE DE DESPACHO TÉCNICO\n\n"
                     f"Ticket ID: {code}\n"
@@ -1050,16 +1062,17 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                     f"--- ANÁLISIS TÉCNICO PRELIMINAR (SOFIA AI) ---\n"
                     f"Diagnóstico CPC: {tech_diag}\n"
                     f"Materiales Sugeridos: {tech_mat}\n"
-                    f"Consideraciones de Seguridad: {tech_safety}\n"
+                    f"Consideraciones de Seguridad: {tech_safety}\n\n"
+                    f"Central: (669) 213-4422 | Despacho: (669) 234-2444\n"
                 )
                 msg_owner.attach(MIMEText(body_owner, 'plain'))
                 server.sendmail(email_user, email_user, msg_owner.as_string())
+                logger.info(f"📧 Email de despacho enviado al Owner: {email_user}")
 
-                
-                # 2. Email HTML al Cliente (Si dejó email)
+                # B. Email HTML al Cliente (Si dejó email)
                 if email and "@" in email:
                     msg_client = MIMEMultipart()
-                    msg_client['From'] = email_user
+                    msg_client['From'] = f"Morales Plumbing <{email_user}>"
                     msg_client['To'] = email
                     msg_client['Subject'] = f"Service Request Received - Morales Plumbing ({code})"
                     
@@ -1068,8 +1081,8 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                     <body style="font-family: 'Inter', sans-serif; background-color: #f4f4f4; margin: 0; padding: 20px;">
                         <div style="max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.1);">
                             <div style="background: linear-gradient(135deg, #0A192F 0%, #112240 100%); text-align: center; padding: 30px 20px; border-bottom: 4px solid #D4AF37;">
-                                <img src="https://orion-cloud-1.onrender.com/logo" alt="Morales Plumbing Logo" style="max-width: 200px;">
-                                <h1 style="color: #D4AF37; margin-bottom: 0;">Service Request Received</h1>
+                                <h1 style="color: #D4AF37; margin: 0; font-size: 24px;">MORALES PLUMBING</h1>
+                                <p style="color: #ffffff; margin: 5px 0 0 0; font-size: 13px;">AI-INTEGRATED SERVICES | Lic. C-36 #1156542</p>
                             </div>
                             <div style="padding: 30px;">
                                 <p style="color: #333; font-size: 16px;">Hello <strong>{name}</strong>,</p>
@@ -1078,12 +1091,13 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                                     <p style="margin: 5px 0;"><strong>Ticket ID:</strong> {code}</p>
                                     <p style="margin: 5px 0;"><strong>Service Address:</strong> {address}</p>
                                     <p style="margin: 5px 0;"><strong>Reported Issue:</strong> {diagnosis}</p>
+                                    <p style="margin: 5px 0;"><strong>Scheduled Window:</strong> {scheduled_time}</p>
+                                    <p style="margin: 5px 0;"><strong>Membership:</strong> Plan Free ($0 Diagnostic Fee)</p>
                                 </div>
-                                <p style="color: #555; font-size: 16px; line-height: 1.6;">Our technical team is currently reviewing your request. We will contact you shortly to confirm the exact time of our visit.</p>
+                                <p style="color: #555; font-size: 16px; line-height: 1.6;">Our certified technician will arrive within your scheduled window. You will receive an On-My-Way notification with GPS tracking before arrival.</p>
                             </div>
-                            <div style="background-color: #f4f4f4; text-align: center; padding: 20px; color: #777; font-size: 14px;">
-                                <p style="margin: 5px 0;"><strong>MORALES PLUMBING | AI-INTEGRATED SERVICES</strong></p>
-                                <p style="margin: 5px 0;">Lic. C-36 #1156542 | San Jose, CA</p>
+                            <div style="background-color: #0A192F; text-align: center; padding: 20px; color: #ffffff; font-size: 13px;">
+                                <p style="margin: 5px 0; font-weight: bold; color: #D4AF37;">MORALES PLUMBING | Lic. C-36 #1156542</p>
                                 <p style="margin: 5px 0;">(669) 213-4422 | moralesplumbing026@gmail.com</p>
                                 <p style="margin: 5px 0;"><a href="https://www.morales-plumbing.com" style="color: #D4AF37; text-decoration: none;"><strong>www.morales-plumbing.com</strong></a></p>
                             </div>
@@ -1098,6 +1112,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                 server.quit()
         except Exception as e:
             logger.error(f"Error enviando Email: {e}")
+
 
         # 3. Notificación SMS al Cliente y al Despacho vía Twilio REST API
         try:
