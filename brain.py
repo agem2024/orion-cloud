@@ -121,17 +121,19 @@ class OrionBrain:
             except Exception as e:
                 logger.error(f"OpenAI Error: {e}")
 
-        # 2. Intentar Gemini (Fallback) - Nuevo SDK
+        # 2. Intentar Gemini (Fallback multi-modelo) - Nuevo SDK
         if self.gemini_client:
-            try:
-                full_prompt = f"{system_prompt}\n\nUSER MESSAGE: {user_text}"
-                response = self.gemini_client.models.generate_content(
-                    model="gemini-2.5-flash",
-                    contents=full_prompt
-                )
-                return response.text
-            except Exception as e:
-                logger.error(f"Gemini Error: {e}")
+            full_prompt = f"{system_prompt}\n\nUSER MESSAGE: {user_text}"
+            for g_model in ("gemini-3.5-flash-lite", "gemini-3.6-flash"):
+                try:
+                    response = self.gemini_client.models.generate_content(
+                        model=g_model,
+                        contents=full_prompt
+                    )
+                    if response.text:
+                        return response.text.strip()
+                except Exception as e:
+                    logger.warning(f"Gemini {g_model} Error: {e}")
 
         # Respuesta de emergencia según idioma
         if lang == "es":
