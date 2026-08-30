@@ -1288,6 +1288,9 @@ async def twilio_ws(websocket: WebSocket):
             await openai_ws.send(json.dumps(session_update))
 
             is_speaking = False
+            # Event para sincronizar: el saludo espera confirmación session.updated de OpenAI
+            # antes de enviarse. Esto garantiza que G.711 µ-law esté activo y evita static.
+            session_ready = asyncio.Event()
 
             async def receive_from_twilio():
                 nonlocal stream_sid, call_sid
@@ -1301,14 +1304,23 @@ async def twilio_ws(websocket: WebSocket):
                             call_sid = data['start'].get('callSid')
                             logger.info(f"▶️ Twilio Stream Started: {stream_sid} (CallSid: {call_sid})")
                             
+                            # Esperar confirmación session.updated de OpenAI (máx 3s)
+                            # antes de enviar el saludo, para garantizar G.711 µ-law activo.
+                            try:
+                                await asyncio.wait_for(session_ready.wait(), timeout=3.0)
+                            except asyncio.TimeoutError:
+                                logger.warning("⚠️ session.updated no llegó en 3s — enviando saludo de todas formas")
+                            
                             # Saludo inicial con aviso legal de grabación (Cal. Penal Code § 632)
                             initial_response = {
                                 "type": "response.create",
                                 "response": {
+                                    "modalities": ["audio"],
                                     "instructions": "Saluda cordialmente: 'Por motivos de calidad y seguridad, esta llamada está siendo grabada. Gracias por llamar a Morales Plumbing, le atiende Sofia Lin. ¿En qué podemos ayudarle hoy?'"
                                 }
                             }
                             await openai_ws.send(json.dumps(initial_response))
+                            logger.info("🗣️ Saludo inicial enviado a OpenAI (sesión G.711 confirmada)")
                         
                         elif data['event'] == 'media':
                             try:
@@ -1338,6 +1350,7 @@ async def twilio_ws(websocket: WebSocket):
                         
                         if event_type == "session.updated":
                             logger.info("✅ Sesión de audio G.711 µ-law y voz 'coral' activada en OpenAI.")
+                            session_ready.set()  # Libera el saludo inicial en receive_from_twilio
                         elif event_type == "error":
                             logger.error(f"❌ Error devuelto por OpenAI Realtime: {event.get('error')}")
                         
