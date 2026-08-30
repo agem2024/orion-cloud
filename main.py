@@ -1018,19 +1018,27 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                     f"• *Materiales/Herramientas:* {tech_mat}\n"
                     f"• *Seguridad (Cal/OSHA):* {tech_safety}"
                 )
-                session_tg = requests.Session()
-                r_tg = session_tg.post(
-                    f"https://api.telegram.org/bot{tg_token}/sendMessage",
-                    json={"chat_id": tg_chat, "text": msg_tg, "parse_mode": "Markdown"},
-                    timeout=10
-                )
-                if r_tg.status_code != 200:
-                    session_tg.post(
-                        f"https://api.telegram.org/bot{tg_token}/sendMessage",
-                        json={"chat_id": tg_chat, "text": msg_tg},
-                        timeout=10
-                    )
-                logger.info(f"📱 Alerta enviada a Telegram con status: {r_tg.status_code}")
+                import urllib.request
+                tg_url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
+                tg_payload = json.dumps({
+                    "chat_id": tg_chat,
+                    "text": msg_tg,
+                    "parse_mode": "Markdown"
+                }).encode("utf-8")
+                
+                try:
+                    req_tg = urllib.request.Request(tg_url, data=tg_payload, headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req_tg, timeout=10) as resp_tg:
+                        logger.info(f"📱 Alerta enviada a Telegram con status: {resp_tg.status}")
+                except Exception as tg_inner_err:
+                    # Fallback en texto plano si falla el parseo de Markdown
+                    tg_plain_payload = json.dumps({
+                        "chat_id": tg_chat,
+                        "text": msg_tg
+                    }).encode("utf-8")
+                    req_plain = urllib.request.Request(tg_url, data=tg_plain_payload, headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
+                    with urllib.request.urlopen(req_plain, timeout=10) as resp_plain:
+                        logger.info(f"📱 Alerta enviada a Telegram (Plain text) con status: {resp_plain.status}")
         except Exception as e:
             logger.error(f"Error enviando Telegram: {e}")
 
