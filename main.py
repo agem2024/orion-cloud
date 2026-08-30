@@ -700,11 +700,27 @@ _Escribe cualquier pregunta para XONA_"""
     return {"ok": True}
 
 async def send_telegram_message(chat_id: int, text: str):
-    """EnvÃ­a mensaje de texto a Telegram"""
+    """Envía mensaje de texto a Telegram con fallback automático a texto plano"""
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
     payload = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
-    async with httpx.AsyncClient() as client:
-        await client.post(url, json=payload)
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.post(url, json=payload)
+            if resp.status_code != 200:
+                # Fallback sin markdown
+                payload_plain = {"chat_id": chat_id, "text": text}
+                await client.post(url, json=payload_plain)
+    except Exception as e:
+        logger.error(f"Error en send_telegram_message: {e}")
+        try:
+            # Respaldo síncrono con urllib si httpx falla
+            import urllib.request
+            data = json.dumps({"chat_id": chat_id, "text": text}).encode("utf-8")
+            req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
+            with urllib.request.urlopen(req, timeout=10) as r:
+                pass
+        except Exception as e2:
+            logger.error(f"Error crítico en fallback Telegram: {e2}")
 
 async def send_telegram_voice(chat_id: int, voice_url: str):
     """EnvÃ­a audio/voz a Telegram (URL)"""
