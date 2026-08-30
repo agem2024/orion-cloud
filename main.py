@@ -23,12 +23,12 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
 
 if SUPABASE_URL and SUPABASE_KEY:
-    logger.info("✅ Supabase DB configurado como Base de Datos Principal.")
+    logger.info("[OK] Supabase DB configurado como Base de Datos Principal.")
 else:
-    logger.warning("⚠️ Supabase no configurado en variables de entorno.")
+    logger.warning("[AVISO] Supabase no configurado en variables de entorno.")
 
 
-# ============ MEMORIA DE SESIÃ“N DE VOZ ============
+# ============ MEMORIA DE SESION DE VOZ ============
 call_sessions = {}
 
 
@@ -227,35 +227,35 @@ JSON:"""
             
             if lang == "es":
                 return (
-                    f"🔧 *MORALES PLUMBING — CONFIRMACIÓN DE CITA DE SERVICIO*\n\n"
-                    f"📋 *Código de Orden:* `{code}`\n"
-                    f"👤 *Cliente:* {name}\n"
-                    f"📍 *Dirección de Servicio:* {address}\n"
-                    f"📞 *Teléfono:* {phone}\n"
-                    f"📧 *Correo:* {email}\n"
-                    f"🛠️ *Problema Reportado:* {diagnosis}\n"
-                    f"⏰ *Ventana Horaria Asignada:* {time_window}\n"
-                    f"💳 *Membresía Aplicada:* Plan Free ($0.00/mes — 0 Diagnostic Fee)\n\n"
-                    f"🚗 *Próximos pasos:* Uno de nuestros plomeros certificados acudirá con su camión taller en la ventana programada. "
+                    f"[ORDEN] *MORALES PLUMBING — CONFIRMACIÓN DE CITA DE SERVICIO*\n\n"
+                    f"[TICKET] *Código de Orden:* `{code}`\n"
+                    f"[CLIENTE] *Cliente:* {name}\n"
+                    f"[DIRECCION] *Dirección de Servicio:* {address}\n"
+                    f"[TELEFONO] *Teléfono:* {phone}\n"
+                    f"[EMAIL] *Correo:* {email}\n"
+                    f"[LICENCIA] *Problema Reportado:* {diagnosis}\n"
+                    f"[HORARIO] *Ventana Horaria Asignada:* {time_window}\n"
+                    f"[PAGO] *Membresía Aplicada:* Plan Free ($0.00/mes — 0 Diagnostic Fee)\n\n"
+                    f" *Próximos pasos:* Uno de nuestros plomeros certificados acudirá con su camión taller en la ventana programada. "
                     f"Recibirá un mensaje de notificación cuando el técnico esté en camino (On-My-Way) con seguimiento satelital.\n\n"
-                    f"📞 *Central:* (669) 213-4422 | *Despacho de Guardia:* (669) 234-2444\n"
-                    f"🌐 *Web:* www.moralesplumbing.com"
+                    f"[TELEFONO] *Central:* (669) 213-4422 | *Despacho de Guardia:* (669) 234-2444\n"
+                    f"[WEB] *Web:* www.moralesplumbing.com"
                 )
             else:
                 return (
-                    f"🔧 *MORALES PLUMBING — SERVICE APPOINTMENT CONFIRMATION*\n\n"
-                    f"📋 *Order Code:* `{code}`\n"
-                    f"👤 *Customer:* {name}\n"
-                    f"📍 *Service Address:* {address}\n"
-                    f"📞 *Phone:* {phone}\n"
-                    f"📧 *Email:* {email}\n"
-                    f"🛠️ *Reported Issue:* {diagnosis}\n"
-                    f"⏰ *Assigned Time Window:* {time_window}\n"
-                    f"💳 *Applied Membership:* Plan Free ($0.00/mo — $0 Diagnostic Fee)\n\n"
-                    f"🚗 *Next steps:* A certified technician with a mobile workshop unit will arrive within the scheduled window. "
+                    f"[ORDEN] *MORALES PLUMBING — SERVICE APPOINTMENT CONFIRMATION*\n\n"
+                    f"[TICKET] *Order Code:* `{code}`\n"
+                    f"[CLIENTE] *Customer:* {name}\n"
+                    f"[DIRECCION] *Service Address:* {address}\n"
+                    f"[TELEFONO] *Phone:* {phone}\n"
+                    f"[EMAIL] *Email:* {email}\n"
+                    f"[LICENCIA] *Reported Issue:* {diagnosis}\n"
+                    f"[HORARIO] *Assigned Time Window:* {time_window}\n"
+                    f"[PAGO] *Applied Membership:* Plan Free ($0.00/mo — $0 Diagnostic Fee)\n\n"
+                    f" *Next steps:* A certified technician with a mobile workshop unit will arrive within the scheduled window. "
                     f"You will receive an On-My-Way tracking notification once the technician is en route.\n\n"
-                    f"📞 *Office:* (669) 213-4422 | *Direct Dispatch:* (669) 234-2444\n"
-                    f"🌐 *Web:* www.moralesplumbing.com"
+                    f"[TELEFONO] *Office:* (669) 213-4422 | *Direct Dispatch:* (669) 234-2444\n"
+                    f"[WEB] *Web:* www.moralesplumbing.com"
                 )
 
 
@@ -324,7 +324,7 @@ async def get_openai_tts(text: str, lang: str = "es") -> bytes:
         # Voces masculinas: onyx (California cool), echo (elegante)
         voice = "onyx" if lang == "en" else "echo"  # onyx=California, echo=elegante paisa
         response = client.audio.speech.create(
-            model="tts-1-hd",  # HD = Alta definiciÃ³n, mÃ¡s natural
+            model="tts-1-hd",  # HD = Alta definicion, mas natural
             voice=voice,
             input=text[:4096],
             speed=1.0
@@ -385,10 +385,10 @@ async def web_chat(request: Request):
     try:
         data = await request.json()
         message = data.get("message", "")
-        lang = data.get("lang", "es")  # Default: espaÃ±ol
+        lang = data.get("lang", "es")  # Default: espanol
         
         if not message:
-            error_msg = "Por favor envÃ­a un mensaje." if lang == "es" else "Please send a message."
+            error_msg = "Por favor envia un mensaje." if lang == "es" else "Please send a message."
             return {"response": error_msg, "error": True}
         
         response = sofia_chat(message, lang)
@@ -407,7 +407,7 @@ async def api_web_appointment(request: Request):
         phone = data.get("phone", "N/A")
         email = data.get("email", "")
         address = data.get("address", "N/A")
-        diagnosis = data.get("diagnosis", "Solicitado vÃ­a formulario web")
+        diagnosis = data.get("diagnosis", "Solicitado via formulario web")
         materials = "Por evaluar en sitio"
         is_emergency = data.get("is_emergency", False)
         scheduled_time = data.get("scheduled_time", "ASAP" if is_emergency else "Por coordinar")
@@ -445,7 +445,7 @@ async def telegram_webhook(req: Request, token: str = ""):
 
         # Manejo de voz entrante
         if "voice" in msg:
-            await send_telegram_message(chat_id, "ðŸŽ¤ Audio recibido. TranscripciÃ³n en desarrollo.")
+            await send_telegram_message(chat_id, "[VOZ] Audio recibido. Transcripcion en desarrollo.")
             return {"ok": True}
         
         # Manejo de texto
@@ -457,9 +457,9 @@ async def telegram_webhook(req: Request, token: str = ""):
         
         # ============ /START ============
         if text_lower.startswith("/start"):
-            menu = """ðŸš€ *Morales Plumbing CLOUD v4 ONLINE*
+            menu = """[ONLINE] *Morales Plumbing CLOUD v4 ONLINE*
 
-*ðŸ“– COMANDOS DISPONIBLES:*
+*[DOC] COMANDOS DISPONIBLES:*
 
 *ðŸ”— Accesos:*
 /acutor - Manual Morales Plumbing
@@ -468,11 +468,11 @@ async def telegram_webhook(req: Request, token: str = ""):
 /apps - Orion Apps (8 links)
 /otp - Landing Orion Bots
 
-*ðŸ’¼ Profesional:*
+*[PRO] Profesional:*
 /cv - CV Principal
 /cv2 - CV Profesional Extendido
 /tj - Tarjeta Digital
-/skills - Skills tÃ©cnicas
+/skills - Skills tecnicas
 /landing - Neon Hub
 
 *ðŸ¢ Industrias:*
@@ -483,14 +483,14 @@ async def telegram_webhook(req: Request, token: str = ""):
 /retail - Retail
 /enterprise - Enterprise
 
-*ðŸŽ¤ Voz & IA:*
+*[VOZ] Voz & IA:*
 /say [texto] - Texto a voz HD
 /orvoz [texto] - IA + voz
 /tr [texto] a [idioma] - Traducir
 
-*ðŸ”§ Sistema:*
+*[SISTEMA] Sistema:*
 /status - Estado sistema
-/stats - EstadÃ­sticas
+/stats - Estadisticas
 /ayuda - Ver comandos
 
 _Escribe cualquier cosa para hablar con Nekon_"""
@@ -516,7 +516,7 @@ _Escribe cualquier cosa para hablar con Nekon_"""
         if text_lower.startswith("/orvoz "):
             query = text[7:].strip()
             if query:
-                await send_telegram_message(chat_id, "ðŸ¤–ðŸŽ™ï¸ Procesando con voz natural...")
+                await send_telegram_message(chat_id, "[BOT][VOZ] Procesando con voz natural...")
                 response = sofia_text_chat(query, f"tg_{user_id}", lang)
                 await send_telegram_message(chat_id, response)
                 audio_bytes = await get_openai_tts(response, lang)
@@ -539,30 +539,30 @@ _Escribe cualquier cosa para hablar con Nekon_"""
                 translation = sofia_chat(prompt, "en")
                 await send_telegram_message(chat_id, f"ðŸŒ *{idioma.upper()}:*\n{translation}")
             else:
-                await send_telegram_message(chat_id, "âŒ Uso: /tr [texto] a [idioma]\nEj: /tr hello a espaÃ±ol")
+                await send_telegram_message(chat_id, "âŒ Uso: /tr [texto] a [idioma]\nEj: /tr hello a espanol")
             return {"ok": True}
         
         # ============ ACCESOS DIRECTOS (Actualizados) ============
         if text_lower.startswith("/acutor") or text_lower.startswith("/manual"):
-            await send_telegram_message(chat_id, f"ðŸ“– *MANUAL Morales Plumbing SYSTEM*\n\nðŸ”— {MANUAL_URL}\n\nâœ… Manual Completo - GuÃ¡rdalo!")
+            await send_telegram_message(chat_id, f"[DOC] *MANUAL Morales Plumbing SYSTEM*\n\nðŸ”— {MANUAL_URL}\n\n[OK] Manual Completo - Guardalo!")
             return {"ok": True}
         
         if text_lower.startswith("/pb") or text_lower == "pricebook":
-            await send_telegram_message(chat_id, f"ðŸ’° *PRICE BOOK v6.0 PRO*\n\nðŸ”— {PRICEBOOK_URL}\n\nâœ… 100+ Servicios\nðŸ’µ Precios: EstÃ¡ndar/Miembro/Emergencia\nðŸŽ¯ Sistema Good/Better/Best\nðŸ“ MetodologÃ­a de CÃ¡lculo")
+            await send_telegram_message(chat_id, f"[PRECIOS] *PRICE BOOK v6.0 PRO*\n\nðŸ”— {PRICEBOOK_URL}\n\n[OK] 100+ Servicios\n[TARIFAS] Precios: Estandar/Miembro/Emergencia\n[PLAN] Sistema Good/Better/Best\nðŸ“ Metodologia de Calculo")
             return {"ok": True}
             
         if text_lower.startswith("/ld") or text_lower.startswith("/legaldocs") or text_lower.startswith("/contrato") or text_lower.startswith("/factura"):
-            msg_ld = f"""âš–ï¸ *MORALES PLUMBING - GENERADOR LEGAL & CONTRATOS*
+            msg_ld = f"""[LEGAL] *MORALES PLUMBING - GENERADOR LEGAL & CONTRATOS*
 
-Plataforma oficial para generar, firmar y consultar contratos, facturas, recibos y Ã³rdenes de trabajo.
+Plataforma oficial para generar, firmar y consultar contratos, facturas, recibos y ordenes de trabajo.
 
 ðŸŒ *Enlace Directo:* https://morales-plumbing-web.web.app/
 
-ðŸ“Œ *Licencia CSLB:* C-36 #1156542 | San Jose, CA
-ðŸ“ž *TelÃ©fono:* (669) 213-4422
-ðŸ“§ *Email:* moralesplumbing026@gmail.com
+[LIC] *Licencia CSLB:* C-36 #1156542 | San Jose, CA
+[TEL] *Telefono:* (669) 213-4422
+[EMAIL] *Email:* moralesplumbing026@gmail.com
 
-ðŸ’¡ *Para abrir un documento guardado:* Usa el formato:
+[INFO] *Para abrir un documento guardado:* Usa el formato:
 `https://morales-plumbing-web.web.app/?docId=ID_DEL_DOC`"""
             await send_telegram_message(chat_id, msg_ld)
             return {"ok": True}
@@ -575,7 +575,7 @@ Plataforma oficial para generar, firmar y consultar contratos, facturas, recibos
             return {"ok": True}
         
         if text_lower.startswith("/otp"):
-            await send_telegram_message(chat_id, f"ðŸ¤– *MORALES PLUMBING PRODUCTS*\n\nðŸ“‹ *Industrias:*\nâ€¢ /restaurant - Restaurantes\nâ€¢ /salon - Salones\nâ€¢ /liquor - Licoreras\nâ€¢ /contractor - Contratistas\nâ€¢ /retail - Retail\nâ€¢ /enterprise - Enterprise\n\nðŸ”— {MORALES_PLUMBING_BOTS_URL}")
+            await send_telegram_message(chat_id, f"[BOT] *MORALES PLUMBING PRODUCTS*\n\nðŸ“‹ *Industrias:*\n* /restaurant - Restaurantes\n* /salon - Salones\n* /liquor - Licoreras\n* /contractor - Contratistas\n* /retail - Retail\n* /enterprise - Enterprise\n\nðŸ”— {MORALES_PLUMBING_BOTS_URL}")
             return {"ok": True}
         
         # ============ INDUSTRIAS ============
@@ -583,16 +583,16 @@ Plataforma oficial para generar, firmar y consultar contratos, facturas, recibos
             await send_telegram_message(chat_id, f"ðŸ½ï¸ *RESTAURANTES*\n\nðŸ”— {INDUSTRY_URLS['restaurant']}")
             return {"ok": True}
         if text_lower.startswith("/salon"):
-            await send_telegram_message(chat_id, f"ðŸ’‡ *SALONES DE BELLEZA*\n\nðŸ”— {INDUSTRY_URLS['salon']}")
+            await send_telegram_message(chat_id, f"[SALON] *SALONES DE BELLEZA*\n\nðŸ”— {INDUSTRY_URLS['salon']}")
             return {"ok": True}
         if text_lower.startswith("/liquor"):
             await send_telegram_message(chat_id, f"ðŸ· *LICORERAS*\n\nðŸ”— {INDUSTRY_URLS['liquor']}")
             return {"ok": True}
         if text_lower.startswith("/contractor"):
-            await send_telegram_message(chat_id, f"ðŸ”§ *CONTRATISTAS*\n\nðŸ”— {INDUSTRY_URLS['contractor']}")
+            await send_telegram_message(chat_id, f"[SISTEMA] *CONTRATISTAS*\n\nðŸ”— {INDUSTRY_URLS['contractor']}")
             return {"ok": True}
         if text_lower.startswith("/retail"):
-            await send_telegram_message(chat_id, f"ðŸ›’ *RETAIL*\n\nðŸ”— {INDUSTRY_URLS['retail']}")
+            await send_telegram_message(chat_id, f"[RETAIL] *RETAIL*\n\nðŸ”— {INDUSTRY_URLS['retail']}")
             return {"ok": True}
         if text_lower.startswith("/enterprise"):
             await send_telegram_message(chat_id, f"ðŸ¢ *ENTERPRISE*\n\nðŸ”— {INDUSTRY_URLS['enterprise']}")
@@ -601,16 +601,16 @@ Plataforma oficial para generar, firmar y consultar contratos, facturas, recibos
         # ============ PROFESIONAL (CV, TJ, Skills) ============
         if text_lower == "/mp" or text_lower == "mp":
             # Enviamos texto con el link de la tarjeta digital usando HTML parse_mode para evitar errores de Markdown
-            mp_text = """ðŸ”§ <b>MORALES PLUMBING</b>
+            mp_text = """[SISTEMA] <b>MORALES PLUMBING</b>
 AI-INTEGRATED SERVICES
 
 Lic. C-36 #1156542 | San Jose, CA
 ðŸ“± (669) 213-4422
-ðŸ“§ moralesplumbing026@gmail.com
+[EMAIL] moralesplumbing026@gmail.com
 ðŸŒ www.morales-plumbing.com
 
 ðŸªª <b>Tarjeta Digital:</b>
-<a href="https://agem2024.github.io/morales-plumbing-web/tarjeta_presentacion.html">Click aquÃ­ para abrir la tarjeta digital</a>"""
+<a href="https://agem2024.github.io/morales-plumbing-web/tarjeta_presentacion.html">Click aqui para abrir la tarjeta digital</a>"""
             url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
             payload = {"chat_id": chat_id, "text": mp_text, "parse_mode": "HTML"}
             async with httpx.AsyncClient() as client:
@@ -619,34 +619,34 @@ Lic. C-36 #1156542 | San Jose, CA
             
 
         if text_lower.startswith("/cv2"):
-            await send_telegram_message(chat_id, f"ðŸ“„ *CV VERSIÃ“N 2 (Profesional)*\n\nâœ¨ Formato ATS-friendly con logros\nðŸ“Š 21+ aÃ±os experiencia\nðŸ”— {CV2_URL}")
+            await send_telegram_message(chat_id, f"ðŸ“„ *CV VERSION 2 (Profesional)*\n\nâœ¨ Formato ATS-friendly con logros\n[STATS] 21+ anos experiencia\nðŸ”— {CV2_URL}")
             return {"ok": True}
         
         if text_lower.startswith("/cv"):
-            await send_telegram_message(chat_id, f"ðŸ“„ *CV PROFESIONAL*\n\nðŸ”— {CV_URL}\n\nðŸ‘¤ Alex G. Espinosa\nðŸŽ¯ AI Architect | 21+ aÃ±os experiencia\n\n_Usa /cv2 para versiÃ³n extendida_")
+            await send_telegram_message(chat_id, f"ðŸ“„ *CV PROFESIONAL*\n\nðŸ”— {CV_URL}\n\nðŸ‘¤ Alex G. Espinosa\n[PLAN] AI Architect | 21+ anos experiencia\n\n_Usa /cv2 para version extendida_")
             return {"ok": True}
         
         if text_lower.startswith("/tj") or text_lower.startswith("/card"):
-            await send_telegram_message(chat_id, f"ðŸ’¼ *TARJETA DIGITAL*\n\nðŸ”— {CARD_URL}\n\nðŸ“± Contacto profesional digital")
+            await send_telegram_message(chat_id, f"[PRO] *TARJETA DIGITAL*\n\nðŸ”— {CARD_URL}\n\nðŸ“± Contacto profesional digital")
             return {"ok": True}
         
         if text_lower.startswith("/skills"):
-            await send_telegram_message(chat_id, """ðŸ› ï¸ *SKILLS TÃ‰CNICAS*
+            await send_telegram_message(chat_id, """ðŸ› ï¸ *SKILLS TECNICAS*
 
-ðŸ¤– *AI & DEV:*
-â€¢ Multi-Agent Systems (Orion)
-â€¢ Generative AI (Gemini, GPT-4, Claude)
-â€¢ Node.js, Python, WhatsApp Automation
+[BOT] *AI & DEV:*
+* Multi-Agent Systems (Orion)
+* Generative AI (Gemini, GPT-4, Claude)
+* Node.js, Python, WhatsApp Automation
 
-ðŸ—ï¸ *INGENIERÃA:*
-â€¢ DiseÃ±o HidrÃ¡ulico & Sanitario
-â€¢ EstimaciÃ³n de Costos & Presupuestos
-â€¢ AuditorÃ­a ISO 14001
+ðŸ—ï¸ *INGENIERAA:*
+* Diseno Hidraulico & Sanitario
+* Estimacion de Costos & Presupuestos
+* Auditoria ISO 14001
 
-ðŸ’¼ *MANAGEMENT:*
-â€¢ Liderazgo de Equipos
-â€¢ GestiÃ³n de Proyectos Complejos
-â€¢ ConsultorÃ­a EstratÃ©gica""")
+[PRO] *MANAGEMENT:*
+* Liderazgo de Equipos
+* Gestion de Proyectos Complejos
+* Consultoria Estrategica""")
             return {"ok": True}
         
         if text_lower.startswith("/landing"):
@@ -655,17 +655,17 @@ Lic. C-36 #1156542 | San Jose, CA
         
         # ============ SISTEMA (SOLO OWNER) ============
         if text_lower.startswith("/status") and is_owner:
-            await send_telegram_message(chat_id, "ðŸŸ¢ *Morales Plumbing CLOUD STATUS*\n\nâœ… Brain: Online\nâœ… Webhook: Active\nâœ… API: Running\nâœ… TTS: Enabled\n\nðŸŒ https://orion-cloud-1.onrender.com")
+            await send_telegram_message(chat_id, "ðŸŸ¢ *Morales Plumbing CLOUD STATUS*\n\n[OK] Brain: Online\n[OK] Webhook: Active\n[OK] API: Running\n[OK] TTS: Enabled\n\nðŸŒ https://orion-cloud-1.onrender.com")
             return {"ok": True}
         
         if text_lower.startswith("/stats") and is_owner:
-            await send_telegram_message(chat_id, "ðŸ“Š *ESTADÃSTICAS*\n\nðŸ¤– Sistema: XONA v4.0\nâ˜ï¸ Host: Render\nðŸ§  IA: OpenAI/Gemini\nðŸŽ¤ TTS: OpenAI HD\n\n_Bot 100% Cloud_")
+            await send_telegram_message(chat_id, "[STATS] *ESTADASTICAS*\n\n[BOT] Sistema: XONA v4.0\nâ˜ï¸ Host: Render\nðŸ§  IA: OpenAI/Gemini\n[VOZ] TTS: OpenAI HD\n\n_Bot 100% Cloud_")
             return {"ok": True}
         
         if text_lower.startswith("/ayuda") or text_lower == "help" or text_lower == "?":
             ayuda = """â“ *AYUDA Morales Plumbing CLOUD v4*
 
-*ðŸ“– Accesos:*
+*[DOC] Accesos:*
 /acutor - Manual Morales Plumbing
 /pb - Price Book v6.0 PRO
 /apps - Orion Apps (8 links)
@@ -675,21 +675,21 @@ Lic. C-36 #1156542 | San Jose, CA
 /restaurant /salon /liquor
 /contractor /retail /enterprise
 
-*ðŸ’¼ Profesional:*
+*[PRO] Profesional:*
 /cv - CV Principal
 /cv2 - CV Extendido
 /tj - Tarjeta Digital
 /skills - Skills
 /landing - Neon Hub
 
-*ðŸŽ¤ Voz & IA:*
+*[VOZ] Voz & IA:*
 /say [texto] - Texto a voz HD
 /orvoz [texto] - IA + voz
 /tr [texto] a [idioma] - Traducir
 
-*ðŸ”§ Sistema (Owner):*
+*[SISTEMA] Sistema (Owner):*
 /status - Estado
-/stats - EstadÃ­sticas
+/stats - Estadisticas
 
 _Escribe cualquier pregunta para XONA_"""
             await send_telegram_message(chat_id, ayuda)
@@ -740,14 +740,14 @@ async def send_telegram_message(chat_id: int, text: str):
     return False
 
 async def send_telegram_voice(chat_id: int, voice_url: str):
-    """EnvÃ­a audio/voz a Telegram (URL)"""
+    """Envia audio/voz a Telegram (URL)"""
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVoice"
     payload = {"chat_id": chat_id, "voice": voice_url}
     async with httpx.AsyncClient() as client:
         await client.post(url, json=payload)
 
 async def send_telegram_voice_bytes(chat_id: int, audio_bytes: bytes):
-    """EnvÃ­a audio como bytes a Telegram (para OpenAI TTS)"""
+    """Envia audio como bytes a Telegram (para OpenAI TTS)"""
     import io
     url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendVoice"
     files = {"voice": ("audio.mp3", io.BytesIO(audio_bytes), "audio/mpeg")}
@@ -760,22 +760,22 @@ from fastapi import Form
 from fastapi.responses import Response
 
 # System prompts para voz - Nekon femenino profesional CON AGENDAMIENTO
-VOICE_PROMPT_ES = """Eres Sofia Lin, asistente telefÃ³nica ejecutiva (Dispatcher) de Morales Plumbing.
-Voz femenina profesional, paciente y amable. Respondes en MÃXIMO 2 oraciones cortas.
-Servicios: PlomerÃ­a profesional residencial y comercial. Horario 24/7.
-Regla 1: NO des precios por telÃ©fono bajo ninguna circunstancia.
-Regla 2: Para agendar una cita o mandar a un tÃ©cnico, NECESITAS OBLIGATORIAMENTE 6 DATOS:
+VOICE_PROMPT_ES = """Eres Sofia Lin, asistente telefonica ejecutiva (Dispatcher) de Morales Plumbing.
+Voz femenina profesional, paciente y amable. Respondes en MAXIMO 2 oraciones cortas.
+Servicios: Plomeria profesional residencial y comercial. Horario 24/7.
+Regla 1: NO des precios por telefono bajo ninguna circunstancia.
+Regla 2: Para agendar una cita o mandar a un tecnico, NECESITAS OBLIGATORIAMENTE 6 DATOS:
 1. Nombre
-2. TelÃ©fono
+2. Telefono
 3. Email (Pide al cliente que lo deletree si no se entiende bien)
-4. DirecciÃ³n del servicio
-5. Estatus (Si es dueÃ±o de la propiedad o si renta)
-6. DiagnÃ³stico / Problema de plomerÃ­a
+4. Direccion del servicio
+5. Estatus (Si es dueno de la propiedad o si renta)
+6. Diagnostico / Problema de plomeria
 
 NO CONFIRMES LA CITA SI FALTAN DATOS. Pregunta uno por uno de manera natural y conversacional.
-Cuando tengas los 6 datos, responde: "Perfecto, he agendado su cita. Le confirmaremos los detalles y enviaremos al tÃ©cnico."
+Cuando tengas los 6 datos, responde: "Perfecto, he agendado su cita. Le confirmaremos los detalles y enviaremos al tecnico."
 
-Regla 3 (ANTI-SPAM): Si detectas que la persona llama para vender servicios (marketing, SEO, seguros, web design), o es un robot de telemarketing, o pide hablar con el dueÃ±o para ofrecer servicios, di: "No estamos interesados, gracias por llamar" y no agendes ninguna cita. No des informaciÃ³n adicional.
+Regla 3 (ANTI-SPAM): Si detectas que la persona llama para vender servicios (marketing, SEO, seguros, web design), o es un robot de telemarketing, o pide hablar con el dueno para ofrecer servicios, di: "No estamos interesados, gracias por llamar" y no agendes ninguna cita. No des informacion adicional.
 """
 
 VOICE_PROMPT_EN = """You are Sofia Lin, executive phone dispatcher for Morales Plumbing.
@@ -826,9 +826,9 @@ def create_calendar_event(name: str, phone: str, address: str, diagnosis: str, m
         end_time = start_time + timedelta(hours=2)
         
         event = {
-          'summary': f'{"EMERGENCIA: " if is_emergency else ""}{name} - PlomerÃ­a',
+          'summary': f'{"EMERGENCIA: " if is_emergency else ""}{name} - Plomeria',
           'location': address,
-          'description': f'TelÃ©fono: {phone}\nDiagnÃ³stico: {diagnosis}\nMateriales sugeridos: {materials}',
+          'description': f'Telefono: {phone}\nDiagnostico: {diagnosis}\nMateriales sugeridos: {materials}',
           'start': {
             'dateTime': start_time.isoformat() + 'Z',
             'timeZone': 'UTC',
@@ -901,7 +901,7 @@ def create_google_calendar_event(name: str, phone: str, address: str, diagnosis:
         end_time = start_time + datetime.timedelta(hours=2)
 
         event_body = {
-            'summary': f"{'🚨 EMERGENCIA' if is_emergency else '🔧'} [{code}] {name} - {diagnosis[:40]}",
+            'summary': f"{'[ALERTA] EMERGENCIA' if is_emergency else '[ORDEN]'} [{code}] {name} - {diagnosis[:40]}",
             'location': address,
             'description': (
                 f"ORDEN DE SERVICIO MORALES PLUMBING\n"
@@ -934,7 +934,7 @@ def create_google_calendar_event(name: str, phone: str, address: str, diagnosis:
 
         created_event = service.events().insert(calendarId=calendar_id, body=event_body).execute()
         event_link = created_event.get('htmlLink')
-        logger.info(f"📅 Evento insertado en Google Calendar: {event_link}")
+        logger.info(f"[CALENDAR] Evento insertado en Google Calendar: {event_link}")
         return event_link
     except Exception as e:
         logger.error(f"Error insertando evento en Google Calendar: {e}")
@@ -1010,7 +1010,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                 sb_res = requests.post(f"{SUPABASE_URL}/rest/v1/appointments", headers=headers, json=supabase_payload, timeout=5)
                 if sb_res.status_code in (200, 201):
                     saved_in_supabase = True
-                    logger.info(f"📅 Cita guardada en SUPABASE: {name} (Código: {code})")
+                    logger.info(f"[CALENDAR] Cita guardada en SUPABASE: {name} (Código: {code})")
                 else:
                     logger.warning(f"Aviso Supabase HTTP {sb_res.status_code}: {sb_res.text}")
             except Exception as sb_e:
@@ -1029,33 +1029,33 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
             appointments.append(appointment)
             with open(APPOINTMENTS_FILE, 'w', encoding='utf-8') as f:
                 json.dump(appointments, f, indent=2, ensure_ascii=False)
-            logger.info(f"📅 Cita guardada en PERSISTENCIA LOCAL: {name} (Código: {code})")
+            logger.info(f"[CALENDAR] Cita guardada en PERSISTENCIA LOCAL: {name} (Código: {code})")
 
         # 1. Notificar por Telegram al Despachador / Técnico con INFORME DUAL COMPLETO
         try:
             tg_token = os.getenv("TELEGRAM_BOT_TOKEN")
             tg_chat = os.getenv("TELEGRAM_OWNER_ID")
             if tg_token and tg_chat:
-                tipo_t = "🚨 EMERGENCIA CRÍTICA P0/P1" if is_emergency else f"📅 CITA PROGRAMADA ({scheduled_time})"
-                cal_str = f"\n📅 *Google Calendar:* [Ver Evento en Calendar]({cal_link})" if cal_link else ""
+                tipo_t = "[ALERTA] EMERGENCIA CRÍTICA P0/P1" if is_emergency else f"[CALENDAR] CITA PROGRAMADA ({scheduled_time})"
+                cal_str = f"\n[CALENDAR] *Google Calendar:* [Ver Evento en Calendar]({cal_link})" if cal_link else ""
                 msg_tg = (
-                    f"🚨 *MORALES PLUMBING — FICHA TÉCNICA DE DESPACHO* 🚨\n\n"
-                    f"📋 *Ticket ID:* `{code}`\n"
-                    f"⚡ *Prioridad:* {tipo_t}\n"
-                    f"👤 *Cliente:* {name}\n"
-                    f"📞 *Teléfono:* `{phone}`\n"
-                    f"📧 *Email:* `{email}`\n"
-                    f"📍 *Dirección de Servicio:* {address}\n"
-                    f"⏰ *Ventana Horaria:* {scheduled_time}\n"
-                    f"💳 *Membresía:* Plan Free ($0.00 Diagnostic Fee)\n\n"
-                    f"🗣️ *REPORTE DEL CLIENTE (Palabras Cotidianas):*\n"
+                    f"[ALERTA] *MORALES PLUMBING — FICHA TÉCNICA DE DESPACHO* [ALERTA]\n\n"
+                    f"[TICKET] *Ticket ID:* `{code}`\n"
+                    f"[PRIORIDAD] *Prioridad:* {tipo_t}\n"
+                    f"[CLIENTE] *Cliente:* {name}\n"
+                    f"[TELEFONO] *Teléfono:* `{phone}`\n"
+                    f"[EMAIL] *Email:* `{email}`\n"
+                    f"[DIRECCION] *Dirección de Servicio:* {address}\n"
+                    f"[HORARIO] *Ventana Horaria:* {scheduled_time}\n"
+                    f"[PAGO] *Membresía:* Plan Free ($0.00 Diagnostic Fee)\n\n"
+                    f"[REPORTE] *REPORTE DEL CLIENTE (Palabras Cotidianas):*\n"
                     f"\"{diagnosis}\"\n\n"
-                    f"🔬 *ANÁLISIS TÉCNICO DE INGENIERÍA (SOFIA AI - CPC):*\n"
-                    f"• *Diagnóstico CPC:* {tech_diag}\n"
-                    f"• *Materiales/Herramientas a Bordo:* {tech_mat}\n"
-                    f"• *Seguridad (Cal/OSHA Title 8):* {tech_safety}{cal_str}\n\n"
-                    f"🛠️ *Licencia:* CSLB C-36 #1156542 | San Jose, CA\n"
-                    f"📞 *Central:* (669) 213-4422 | *Despacho:* (669) 234-2444"
+                    f"[ANALISIS] *ANÁLISIS TÉCNICO DE INGENIERÍA (SOFIA AI - CPC):*\n"
+                    f"* *Diagnóstico CPC:* {tech_diag}\n"
+                    f"* *Materiales/Herramientas a Bordo:* {tech_mat}\n"
+                    f"* *Seguridad (Cal/OSHA Title 8):* {tech_safety}{cal_str}\n\n"
+                    f"[LICENCIA] *Licencia:* CSLB C-36 #1156542 | San Jose, CA\n"
+                    f"[TELEFONO] *Central:* (669) 213-4422 | *Despacho:* (669) 234-2444"
                 )
                 import subprocess, ssl
                 tg_url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
@@ -1071,7 +1071,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                     cmd_tg = ["curl.exe", "--ssl-no-revoke", "-s", "-X", "POST", tg_url, "-H", "Content-Type: application/json", "-d", tg_payload_str]
                     res_c = subprocess.run(cmd_tg, capture_output=True, text=True, timeout=10)
                     if '"ok":true' in res_c.stdout:
-                        logger.info("📱 Ficha completa entregada a Telegram exitosamente vía curl")
+                        logger.info("[NOTIFICACION] Ficha completa entregada a Telegram exitosamente vía curl")
                     else:
                         raise Exception(f"Curl Telegram output: {res_c.stdout}")
                 except Exception as c_err:
@@ -1082,7 +1082,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                         ctx.verify_mode = ssl.CERT_NONE
                         req_tg = urllib.request.Request(tg_url, data=tg_payload_str.encode("utf-8"), headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
                         with urllib.request.urlopen(req_tg, context=ctx, timeout=10) as resp_tg:
-                            logger.info(f"📱 Ficha completa enviada a Telegram con status: {resp_tg.status}")
+                            logger.info(f"[NOTIFICACION] Ficha completa enviada a Telegram con status: {resp_tg.status}")
                     except Exception as tg_inner_err:
                         logger.error(f"Error crítico enviando Telegram: {tg_inner_err}")
         except Exception as e:
@@ -1101,7 +1101,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                 msg_owner = MIMEMultipart()
                 msg_owner['From'] = f"Morales Plumbing Dispatch <{email_user}>"
                 msg_owner['To'] = email_user
-                msg_owner['Subject'] = f"🚨 Nueva Orden de Trabajo - {name} ({code}) - {scheduled_time}"
+                msg_owner['Subject'] = f"[ALERTA] Nueva Orden de Trabajo - {name} ({code}) - {scheduled_time}"
                 body_owner = (
                     f"MORALES PLUMBING — FICHA TÉCNICA DE DESPACHO\n"
                     f"================================================\n\n"
@@ -1125,7 +1125,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                 )
                 msg_owner.attach(MIMEText(body_owner, 'plain'))
                 server.sendmail(email_user, email_user, msg_owner.as_string())
-                logger.info(f"📧 Ficha completa enviada al Owner: {email_user}")
+                logger.info(f"[EMAIL] Ficha completa enviada al Owner: {email_user}")
 
                 # B. Email HTML al Cliente (Si dejó email)
                 if email and "@" in email:
@@ -1165,7 +1165,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                     """
                     msg_client.attach(MIMEText(html_client, 'html'))
                     server.sendmail(email_user, email, msg_client.as_string())
-                    logger.info(f"📧 HTML Confirmation Email sent to client {email}")
+                    logger.info(f"[EMAIL] HTML Confirmation Email sent to client {email}")
                 
                 server.quit()
         except Exception as e:
@@ -1192,7 +1192,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                     sms_text = f"Morales Plumbing: Recibimos su solicitud (Ticket {code}). Un técnico certificado (Lic. C-36 #1156542) coordinará su visita. Central: (669) 213-4422."
                     try:
                         tw_cli.messages.create(body=sms_text, from_=tw_num, to=p_clean)
-                        logger.info(f"📱 SMS de confirmación enviado exitosamente al cliente {p_clean}")
+                        logger.info(f"[NOTIFICACION] SMS de confirmación enviado exitosamente al cliente {p_clean}")
                     except Exception as s_err:
                         logger.warning(f"Aviso SMS cliente: {s_err}")
         except Exception as tw_all_err:
@@ -1404,7 +1404,7 @@ def _start_call_recording_bg(call_sid: str):
             from twilio.rest import Client as TwilioClient
             tw_cli = TwilioClient(tw_sid, tw_token)
             tw_cli.calls(call_sid).recordings.create(recording_channels="dual")
-            logger.info(f"🎙️ Grabación automática iniciada en segundo plano para {call_sid}")
+            logger.info(f"[GRABACION] Grabación automática iniciada en segundo plano para {call_sid}")
     except Exception as e:
         logger.warning(f"Aviso inicio de grabación en segundo plano: {e}")
 
@@ -1598,7 +1598,7 @@ async def twilio_ws(websocket: WebSocket):
     await websocket.accept()
     stream_sid = None
     call_sid = None
-    logger.info("📞 Nueva llamada WebSocket entrante (Twilio -> OpenAI Realtime)")
+    logger.info("[TELEFONO] Nueva llamada WebSocket entrante (Twilio -> OpenAI Realtime)")
     
     openai_api_key = os.getenv("OPENAI_API_KEY")
     if not openai_api_key:
@@ -1613,7 +1613,7 @@ async def twilio_ws(websocket: WebSocket):
 
     try:
         async with websockets.connect(openai_url, additional_headers=headers) as openai_ws:
-            logger.info("🧠 Conectado a OpenAI Realtime API exitosamente")
+            logger.info(" Conectado a OpenAI Realtime API exitosamente")
             
             # Configure Session with G.711 u-law nativo + VAD Anti-Ruido + Voz Femenina Natural 'coral'
             session_update = {
@@ -1684,14 +1684,14 @@ async def twilio_ws(websocket: WebSocket):
                         if data['event'] == 'start':
                             stream_sid = data['start']['streamSid']
                             call_sid = data['start'].get('callSid')
-                            logger.info(f"▶️ Twilio Stream Started: {stream_sid} (CallSid: {call_sid})")
+                            logger.info(f" Twilio Stream Started: {stream_sid} (CallSid: {call_sid})")
                             
                             # Esperar confirmación session.updated de OpenAI (máx 3s)
                             # antes de enviar el saludo, para garantizar G.711 µ-law activo.
                             try:
                                 await asyncio.wait_for(session_ready.wait(), timeout=3.0)
                             except asyncio.TimeoutError:
-                                logger.warning("⚠️ session.updated no llegó en 3s — enviando saludo de todas formas")
+                                logger.warning("[AVISO] session.updated no llegó en 3s — enviando saludo de todas formas")
                             
                             # Saludo inicial con aviso legal de grabación (Cal. Penal Code § 632)
                             initial_response = {
@@ -1703,7 +1703,7 @@ async def twilio_ws(websocket: WebSocket):
                                 }
                             }
                             await openai_ws.send(json.dumps(initial_response))
-                            logger.info("🗣️ Saludo inicial enviado a OpenAI (sesión G.711 confirmada)")
+                            logger.info("[REPORTE] Saludo inicial enviado a OpenAI (sesión G.711 confirmada)")
                         
                         elif data['event'] == 'media':
                             try:
@@ -1717,7 +1717,7 @@ async def twilio_ws(websocket: WebSocket):
                                 break
                                 
                         elif data['event'] == 'stop':
-                            logger.info("⏹️ Twilio Stream Stopped")
+                            logger.info("⏹ Twilio Stream Stopped")
                             break
                 except WebSocketDisconnect:
                     logger.info("Twilio WebSocket disconnected.")
@@ -1732,13 +1732,13 @@ async def twilio_ws(websocket: WebSocket):
                         event_type = event.get("type")
                         
                         if event_type == "session.updated":
-                            logger.info("✅ Sesión de audio G.711 µ-law y voz 'coral' activada en OpenAI.")
+                            logger.info("[OK] Sesión de audio G.711 µ-law y voz 'coral' activada en OpenAI.")
                             session_ready.set()  # Libera el saludo inicial en receive_from_twilio
                         elif event_type == "error":
                             error_info = event.get("error", {})
-                            logger.error(f"❌ Error devuelto por OpenAI Realtime: {error_info}")
+                            logger.error(f" Error devuelto por OpenAI Realtime: {error_info}")
                             if isinstance(error_info, dict) and error_info.get("code") in ("insufficient_quota", "invalid_api_key"):
-                                logger.error("🛑 Cuota agotada o API key inválida en OpenAI Realtime. Cerrando llamada limpiamente para evitar estática.")
+                                logger.error(" Cuota agotada o API key inválida en OpenAI Realtime. Cerrando llamada limpiamente para evitar estática.")
                                 await websocket.close()
                                 break
                         
@@ -1762,7 +1762,7 @@ async def twilio_ws(websocket: WebSocket):
                         # Handle Caller Interruption (Barge-in)
                         elif event_type == "input_audio_buffer.speech_started" and stream_sid:
                             if is_speaking:
-                                logger.info("🗣️ Interrupción vocal humana detectada: pausando audio activo")
+                                logger.info("[REPORTE] Interrupción vocal humana detectada: pausando audio activo")
                                 is_speaking = False
                                 await websocket.send_text(json.dumps({"event": "clear", "streamSid": stream_sid}))
                                 try:
@@ -1776,7 +1776,7 @@ async def twilio_ws(websocket: WebSocket):
                             call_id = event.get("call_id")
                             arguments = json.loads(event.get("arguments", "{}"))
                             
-                            logger.info(f"🔔 Tool Executed: {func_name} with {arguments}")
+                            logger.info(f" Tool Executed: {func_name} with {arguments}")
                             
                             if func_name == "agendar_cita":
                                 is_booking_warranted = True
@@ -1813,7 +1813,7 @@ async def twilio_ws(websocket: WebSocket):
                                 
                             elif func_name == "transferir_a_humano":
                                 motivo = arguments.get("motivo", "Solicitud de cliente")
-                                logger.info(f"📞 Ejecutando transferencia a Despachador Humano (+16692342444): {motivo}")
+                                logger.info(f"[TELEFONO] Ejecutando transferencia a Despachador Humano (+16692342444): {motivo}")
                                 
                                 # Si tenemos call_sid y credenciales Twilio, redirigir la llamada
                                 try:
@@ -1824,7 +1824,7 @@ async def twilio_ws(websocket: WebSocket):
                                         tw_cli = TwilioClient(tw_sid, tw_token)
                                         twiml_redirect = '<Response><Say voice="Polly.Lupe" language="es-US">Transfiriendo con nuestro despachador de guardia. Un momento por favor.</Say><Dial>+16692342444</Dial></Response>'
                                         tw_cli.calls(call_sid).update(twiml=twiml_redirect)
-                                        logger.info("✅ Llamada transferida a +16692342444 vía Twilio Call Update")
+                                        logger.info("[OK] Llamada transferida a +16692342444 vía Twilio Call Update")
                                 except Exception as tr_err:
                                     logger.error(f"Error transfiriendo llamada: {tr_err}")
                                 
@@ -1854,7 +1854,7 @@ async def twilio_ws(websocket: WebSocket):
                     elapsed = asyncio.get_event_loop().time() - call_start_time
                     if elapsed >= 300 and not is_call_extended:
                         if is_booking_warranted:
-                            logger.info("⏱️ Llamada activa con gestión de cita justificada: extendiendo 5 minutos adicionales (Máx 10 min).")
+                            logger.info("⏱ Llamada activa con gestión de cita justificada: extendiendo 5 minutos adicionales (Máx 10 min).")
                             is_call_extended = True
                         else:
                             logger.info("⏳ Llamada alcanzó el límite estándar de 5 minutos (300s). Finalizando para optimizar recursos.")
