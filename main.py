@@ -1151,9 +1151,16 @@ def ask_voice_ai(user_input: str, call_sid: str, lang: str = "es") -> str:
 def get_appointments():
     return {"appointments": []}
 
-@app.get("/voice")
-def voice_status():
-    return {"status": "ok", "service": "Alex Voice Server (OpenAI Realtime)", "endpoints": ["/incoming-call"]}
+@app.get("/health/version")
+def health_version():
+    return {
+        "status": "ok",
+        "commit": "2e998c6",
+        "voice_engine": "twilio-gather-polly-gemini",
+        "openai_realtime": "disabled_for_zero_static",
+        "telephony_stt": "twilio_speech_recognition",
+        "telephony_tts": "polly_mia_neural"
+    }
 
 # ============ TWILIO VOICE ENDPOINTS (OPENAI REALTIME API + FAILOVER VOICE ENGINE) ============
 from twilio.twiml.voice_response import VoiceResponse, Connect, Gather, Dial
