@@ -42,9 +42,9 @@ TELEGRAM_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 OWNER_ID = 5989183300  # Alex G. Espinosa
 BASE_URL = os.getenv("BASE_URL")
 
-# ============ KARLA — MOTOR DE TEXTO NATIVO (COORDINADORA TECNICA VIRTUAL) ============
-_SOFIA_SYSTEM_PROMPT = """You are Karla, the Virtual Technical Coordinator and Master Dispatcher for MORALES PLUMBING (AI-INTEGRATED SERVICES), based in San Jose, California.
-You operate in strict compliance with the official Morales Plumbing Operations & Dispatch Manual.
+# ============ SOFIA LIN — MASTER AI DISPATCHER (MORALES PLUMBING) ============
+_SOFIA_SYSTEM_PROMPT = """You are Sofia Lin, the Master AI Dispatcher and Technical Coordinator for MORALES PLUMBING (AI-INTEGRATED SERVICES), based in San Jose, California.
+You operate in strict compliance with the official Morales Plumbing Operations & Dispatch Manual and California Plumbing Code (CPC).
 
 ================================================================================
 INFORMACION CORPORATIVA Y REGLAS MAESTRAS INMUTABLES
@@ -58,17 +58,28 @@ INFORMACION CORPORATIVA Y REGLAS MAESTRAS INMUTABLES
    - Portal Web: www.morales-plumbing.com
    - Fundador y Director Tecnico: Alex G. Espinosa (Master Plumber e Ing. Ambiental)
 
-2. REGLAS ESTRICTAS DE ESTILO:
-   - PROHIBICION TOTAL DE EMOJIS: NUNCA utilices emojis en tus respuestas. Redaccion 100% sobria, profesional y limpia.
-   - IDENTIDAD FEMENINA Y EMPATICA: Tu nombre es Karla. Tono calido, humano y servicial.
-   - MULTILINGUE INTEGRAL: Responde fluidamente en el idioma del usuario (Ingles, Espanol, Hindi / हिन्दी, Chino / 中文, Tagalog, Tiếng Việt).
+2. PERSONALIDAD Y CADENCIA CONVERSACIONAL (VOZ TRANQUILA Y NATURAL):
+   - Tu nombre es Sofia Lin. Habla siempre con calidez, empatia, serenidad y ritmo pausado.
+   - PROHIBICION TOTAL DE EMOJIS: NUNCA utilices emojis en tus respuestas.
+   - REGLA DE UNA PREGUNTA A LA VEZ: Nunca abrumes al cliente con multiples preguntas. Haz una sola pregunta clara y concisa a la vez para guiar la conversación con elegancia.
+   - Respuestas breves de 1 a 2 oraciones antes de hacer la siguiente pregunta.
 
-3. POLITICAS DE PRECIOS Y ECOSISTEMA DE APPS (LINEAS ROJAS):
-   - PROHIBIDO DAR PRECIOS A CLIENTES: Los costos exactos exigen inspeccion tecnica presencial bajo el Codigo de Plomeria de California (CPC).
-   - CLIENTES RESIDENCIALES/COMERCIALES: Ofrece agendar la visita de diagnostico y acceder a la app MP Pro.
-   - CONTRATISTAS Y APRENDICES: Explica que el Pricebook de la web es un demo de rangos de costo y presentales EP Plumbing Pro para cotizaciones y presupuestos.
+3. FLUJO ESTRUCTURADO DE ATENCION Y AGENDAMIENTO:
+   - Paso 1: Saludar con amabilidad y comprender la necesidad o falla de plomeria.
+   - Paso 2: Pedir la direccion exacta del servicio (con ciudad en el Area de la Bahia / Santa Clara County).
+   - Paso 3: Pedir el nombre del titular y numero de telefono de contacto.
+   - Paso 4: Ofrecer las ventanas horarias oficiales: 8-10 AM, 10-12 PM, 12-2 PM, 2-4 PM, 4-6 PM o Atencion de Emergencia Inmediata.
+   - Paso 5: Solicitar su correo electronico para enviarle la confirmacion formal con su codigo de orden MP-XXXX y seguimiento en tiempo real.
+   - Paso 6: Confirmar la visita aplicando la Membresia Plan Free ($0.00 de cargo por diagnostico).
 
-4. AREA DE COBERTURA:
+4. POLITICAS DE PRECIOS Y COTIZACIONES (LINEAS ROJAS):
+   - PROHIBIDO DAR PRECIOS FIJOS POR TELEFONO: Explica amablemente que segun el Codigo de Plomeria de California (CPC), el costo exacto se define tras la evaluacion tecnica presencial.
+   - CERO TARIFA INVENTADA: No cobrar tarifas inventadas. El diagnostico inicial esta cubierto bajo Plan Free ($0 Diagnostic Fee).
+
+5. TRANSFERENCIA A DESPACHADOR HUMANO:
+   - Si el cliente solicita hablar con una persona, con el dueño o con un técnico en vivo, di con calma que con gusto lo comunicas y transfiere de inmediato a la linea directa (669) 234-2444.
+
+6. AREA DE COBERTURA OFICIAL:
    - San Jose, Santa Clara, Sunnyvale, Cupertino, Mountain View, Campbell, Los Gatos, Milpitas, Morgan Hill, Gilroy, Palo Alto, Saratoga."""
 
 def call_llm_hybrid(user_prompt: str, system_prompt: str = _SOFIA_SYSTEM_PROMPT, max_tokens: int = 1200, json_mode: bool = False) -> str:
@@ -832,6 +843,70 @@ Devuelve ÚNICAMENTE un JSON con:
             "safety_considerations": "Verificar válvula principal de corte de agua y aplicar EPP estándar"
         }
 
+def create_google_calendar_event(name: str, phone: str, address: str, diagnosis: str, scheduled_time: str, code: str, is_emergency: bool = False):
+    """Inserta la cita agendada en Google Calendar oficial de Morales Plumbing"""
+    creds_file = os.getenv('GOOGLE_APPLICATION_CREDENTIALS', 'serviceAccountKey.json')
+    calendar_id = os.getenv('GOOGLE_CALENDAR_ID', 'moralesplumbing026@gmail.com')
+    
+    if not os.path.exists(creds_file) or not calendar_id:
+        logger.warning("Google Calendar credentials no disponibles.")
+        return None
+
+    try:
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+        import datetime
+
+        creds = service_account.Credentials.from_service_account_file(
+            creds_file, scopes=['https://www.googleapis.com/auth/calendar']
+        )
+        service = build('calendar', 'v3', credentials=creds)
+
+        # Determinar horario aproximado en UTC
+        now_dt = datetime.datetime.now(datetime.timezone.utc)
+        start_time = now_dt + datetime.timedelta(hours=1)
+        end_time = start_time + datetime.timedelta(hours=2)
+
+        event_body = {
+            'summary': f"{'🚨 EMERGENCIA' if is_emergency else '🔧'} [{code}] {name} - {diagnosis[:40]}",
+            'location': address,
+            'description': (
+                f"ORDEN DE SERVICIO MORALES PLUMBING\n"
+                f"Código: {code}\n"
+                f"Cliente: {name}\n"
+                f"Teléfono: {phone}\n"
+                f"Dirección: {address}\n"
+                f"Problema: {diagnosis}\n"
+                f"Ventana Solicitada: {scheduled_time}\n"
+                f"Licencia: CSLB C-36 #1156542\n"
+                f"Central: (669) 213-4422 | Despacho: (669) 234-2444\n"
+                f"Web: www.morales-plumbing.com"
+            ),
+            'start': {
+                'dateTime': start_time.isoformat(),
+                'timeZone': 'America/Los_Angeles',
+            },
+            'end': {
+                'dateTime': end_time.isoformat(),
+                'timeZone': 'America/Los_Angeles',
+            },
+            'reminders': {
+                'useDefault': False,
+                'overrides': [
+                    {'method': 'email', 'minutes': 24 * 60},
+                    {'method': 'popup', 'minutes': 30},
+                ],
+            },
+        }
+
+        created_event = service.events().insert(calendarId=calendar_id, body=event_body).execute()
+        event_link = created_event.get('htmlLink')
+        logger.info(f"📅 Evento insertado en Google Calendar: {event_link}")
+        return event_link
+    except Exception as e:
+        logger.error(f"Error insertando evento en Google Calendar: {e}")
+        return None
+
 def save_appointment(name: str, phone: str, email: str, address: str, status: str, diagnosis: str, materials: str, is_emergency: bool, scheduled_time: str, source: str = "phone") -> str:
     """Guarda cita en base de datos y envía reporte dual al técnico/owner (versión cliente + análisis técnico Sofia AI)"""
     import json
@@ -844,6 +919,17 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
     
     try:
         code = f"MP-{random.randint(1000, 9999)}"
+        
+        # Registrar evento en Google Calendar oficial
+        create_google_calendar_event(
+            name=name,
+            phone=phone,
+            address=address,
+            diagnosis=diagnosis,
+            scheduled_time=scheduled_time,
+            code=code,
+            is_emergency=is_emergency
+        )
         
         # Generar análisis técnico dual (Traducción CPC + Repuestos + Seguridad)
         tech_data = generate_technical_dispatch_analysis(diagnosis)
@@ -1229,17 +1315,24 @@ INFORMACION CORPORATIVA Y REGLAS MAESTRAS INMUTABLES
    - Filtra y desestima música de fondo, ruidos ambientales y voces secundarias de radio/televisión.
 """
 
+def _get_base_url(request: Request) -> str:
+    forwarded_host = request.headers.get("x-forwarded-host") or request.headers.get("host")
+    forwarded_proto = request.headers.get("x-forwarded-proto") or request.url.scheme
+    if forwarded_host:
+        return f"{forwarded_proto}://{forwarded_host}"
+    return os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
+
 @app.api_route("/incoming-call", methods=["GET", "POST"])
 async def incoming_call_ws(request: Request):
     """
     Controlador Maestro de Voz Sofia Lin — Morales Plumbing (Zero-Static Voice Engine):
     - Ejecución directa vía Twilio Carrier Voice Core (G.711 nativo sin conversión)
-    - Síntesis de voz ultra-nítida con Amazon Polly Neural (Polly.Mia-Neural)
+    - Síntesis de voz ultra-nítida con Amazon Polly Neural (Polly.Mia-Neural) y prosodia pausada (rate=90%)
     - Inteligencia artificial Sofia Lin con Gemini 3.5/3.6 y PriceBook oficial
     - 100% inmune a estática de códec y desconexiones de WebSocket
     """
     response = VoiceResponse()
-    base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
+    base_url = _get_base_url(request)
     
     gather = Gather(
         input="speech",
@@ -1251,7 +1344,7 @@ async def incoming_call_ws(request: Request):
         timeout=4
     )
     gather.say(
-        "Por motivos de calidad y seguridad, esta llamada está siendo grabada. Gracias por llamar a Morales Plumbing, le atiende Sofia Lin. ¿En qué podemos ayudarle hoy?",
+        "<prosody rate=\"90%\">Por motivos de calidad y seguridad, esta llamada está siendo grabada. Gracias por llamar a Morales Plumbing, le atiende Sofia Lin. ¿En qué podemos ayudarle hoy?</prosody>",
         voice="Polly.Mia-Neural",
         language="es-MX"
     )
@@ -1263,7 +1356,7 @@ async def incoming_call_ws(request: Request):
 async def voice_incoming_direct(request: Request):
     """Endpoint directo de telefonía de alta fidelidad (Zero-Static Voice Engine)"""
     response = VoiceResponse()
-    base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
+    base_url = _get_base_url(request)
     
     gather = Gather(
         input="speech",
@@ -1275,7 +1368,7 @@ async def voice_incoming_direct(request: Request):
         timeout=4
     )
     gather.say(
-        "Por motivos de calidad y seguridad, esta llamada está siendo grabada. Gracias por llamar a Morales Plumbing, le atiende Sofia Lin. ¿En qué podemos ayudarle hoy?",
+        "<prosody rate=\"90%\">Por motivos de calidad y seguridad, esta llamada está siendo grabada. Gracias por llamar a Morales Plumbing, le atiende Sofia Lin. ¿En qué podemos ayudarle hoy?</prosody>",
         voice="Polly.Mia-Neural",
         language="es-MX"
     )
@@ -1289,8 +1382,8 @@ async def voice_process_turn(request: Request):
     Motor de voz telefónico conversacional de alta fidelidad:
     - STT telefónico integrado de Twilio (G.711 nativo sin pérdida)
     - IA Sofia Lin con memoria de llamada y manual operativo (Gemini 3.5/3.6 + OpenAI)
-    - TTS Neural (Polly.Mia-Neural / Polly.Lupe) con 100% inteligibilidad y 0% estática
-    - Agendamiento automático y transferencia a despachador humano (+16692342444)
+    - TTS Neural (Polly.Mia-Neural / Polly.Lupe) con prosodia pausada (rate=90%)
+    - Agendamiento automático, Google Calendar, email corporativo y transferencia a despachador humano (+16692342444)
     """
     form_data = await request.form()
     speech_result = form_data.get("SpeechResult", "").strip()
@@ -1299,7 +1392,7 @@ async def voice_process_turn(request: Request):
     retry = request.query_params.get("retry", "0")
     
     response = VoiceResponse()
-    base_url = os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
+    base_url = _get_base_url(request)
 
     # 1. Manejo de silencios o falta de voz
     if not speech_result:
@@ -1314,7 +1407,7 @@ async def voice_process_turn(request: Request):
                 timeout=5
             )
             gather.say(
-                "Disculpe, no logré escucharle. ¿Podría indicarme el motivo de su llamada o su dirección?",
+                "<prosody rate=\"90%\">Disculpe, no logré escucharle. ¿Podría indicarme el motivo de su llamada o su dirección?</prosody>",
                 voice="Polly.Mia-Neural",
                 language="es-MX"
             )
@@ -1323,7 +1416,7 @@ async def voice_process_turn(request: Request):
             return Response(content=str(response), media_type="application/xml")
         else:
             response.say(
-                "Gracias por comunicarse con Morales Plumbing. Llámenos nuevamente al 669 213 4422. ¡Que tenga un excelente día!",
+                "<prosody rate=\"90%\">Gracias por comunicarse con Morales Plumbing. Llámenos nuevamente al 669 213 4422. ¡Que tenga un excelente día!</prosody>",
                 voice="Polly.Mia-Neural",
                 language="es-MX"
             )
@@ -1339,10 +1432,10 @@ async def voice_process_turn(request: Request):
     lang = "en" if is_english else "es"
 
     # 3. Transferencia a Humano si lo solicita expresamente
-    transfer_triggers = ["humano", "persona", "operador", "dueño", "tecnico en vivo", "hablar con alguien", "human", "agent", "representative", "operator"]
+    transfer_triggers = ["humano", "persona", "operador", "dueño", "tecnico en vivo", "hablar con alguien", "human", "agent", "representative", "operator", "alex"]
     if any(t in speech_lower for t in transfer_triggers):
         response.say(
-            "Con mucho gusto, le transfiero de inmediato con nuestro despachador de guardia. Un momento por favor." if lang == "es" else "Transferring you to our direct dispatch line right now. Please hold.",
+            "<prosody rate=\"90%\">Con mucho gusto, le transfiero de inmediato con nuestro despachador de guardia. Un momento por favor.</prosody>" if lang == "es" else "<prosody rate=\"90%\">Transferring you to our direct dispatch line right now. Please hold.</prosody>",
             voice="Polly.Mia-Neural" if lang == "es" else "Polly.Joanna-Neural",
             language="es-MX" if lang == "es" else "en-US"
         )
@@ -1372,7 +1465,7 @@ async def voice_process_turn(request: Request):
         timeout=5
     )
     gather.say(
-        clean_speech,
+        f"<prosody rate=\"90%\">{clean_speech}</prosody>",
         voice="Polly.Mia-Neural" if lang == "es" else "Polly.Joanna-Neural",
         language="es-MX" if lang == "es" else "en-US"
     )
