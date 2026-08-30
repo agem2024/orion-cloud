@@ -1142,7 +1142,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from fastapi.responses import Response
 from fastapi import Request
 
-OPENAI_REALTIME_MODEL = "gpt-4o-mini-realtime-preview"
+OPENAI_REALTIME_MODEL = "gpt-realtime-2.1-mini"
 
 SYSTEM_PROMPT_SOFIA = """You are Sofia Lin, the Master AI Dispatcher for MORALES PLUMBING (AI-INTEGRATED SERVICES), based in San Jose, California.
 You operate in strict compliance with the official Morales Plumbing Operations & Dispatch Manual (Version 8.0/9.0).
