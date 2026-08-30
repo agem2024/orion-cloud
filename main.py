@@ -921,7 +921,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
         code = f"MP-{random.randint(1000, 9999)}"
         
         # Registrar evento en Google Calendar oficial
-        create_google_calendar_event(
+        cal_link = create_google_calendar_event(
             name=name,
             phone=phone,
             address=address,
@@ -950,6 +950,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
             "safety_considerations": tech_safety,
             "is_emergency": is_emergency,
             "scheduled_time": scheduled_time,
+            "google_calendar_link": cal_link,
             "source": source,
             "created_at": datetime.now().isoformat(),
             "confirmed": False
@@ -997,48 +998,53 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                 json.dump(appointments, f, indent=2, ensure_ascii=False)
             logger.info(f"📅 Cita guardada en PERSISTENCIA LOCAL: {name} (Código: {code})")
 
-        # 1. Notificar por Telegram al Despachador / Técnico con INFORME DUAL
+        # 1. Notificar por Telegram al Despachador / Técnico con INFORME DUAL COMPLETO
         try:
             tg_token = os.getenv("TELEGRAM_BOT_TOKEN")
             tg_chat = os.getenv("TELEGRAM_OWNER_ID")
             if tg_token and tg_chat:
-                tipo_t = "🚨 EMERGENCIA P1/P0" if is_emergency else f"📅 {scheduled_time}"
+                tipo_t = "🚨 EMERGENCIA CRÍTICA P0/P1" if is_emergency else f"📅 CITA PROGRAMADA ({scheduled_time})"
+                cal_str = f"\n📅 *Google Calendar:* [Ver Evento en Calendar]({cal_link})" if cal_link else ""
                 msg_tg = (
-                    f"🚨 *NUEVA ORDEN DE SERVICIO — MORALES PLUMBING* 🚨\n\n"
-                    f"📋 *Ticket ID:* `{code}` | *Prioridad:* {tipo_t}\n"
+                    f"🚨 *MORALES PLUMBING — FICHA TÉCNICA DE DESPACHO* 🚨\n\n"
+                    f"📋 *Ticket ID:* `{code}`\n"
+                    f"⚡ *Prioridad:* {tipo_t}\n"
                     f"👤 *Cliente:* {name}\n"
-                    f"📞 *Teléfono:* {phone}\n"
-                    f"📧 *Email:* {email}\n"
-                    f"📍 *Dirección:* {address}\n"
-                    f"⏰ *Ventana:* {scheduled_time}\n\n"
-                    f"🗣️ *VERSIÓN DEL CLIENTE:*\n"
+                    f"📞 *Teléfono:* `{phone}`\n"
+                    f"📧 *Email:* `{email}`\n"
+                    f"📍 *Dirección de Servicio:* {address}\n"
+                    f"⏰ *Ventana Horaria:* {scheduled_time}\n"
+                    f"💳 *Membresía:* Plan Free ($0.00 Diagnostic Fee)\n\n"
+                    f"🗣️ *REPORTE DEL CLIENTE (Palabras Cotidianas):*\n"
                     f"\"{diagnosis}\"\n\n"
-                    f"🔬 *ANÁLISIS TÉCNICO DE DESPACHO (SOFIA AI - CPC):*\n"
-                    f"• *Diagnóstico:* {tech_diag}\n"
-                    f"• *Materiales/Herramientas:* {tech_mat}\n"
-                    f"• *Seguridad (Cal/OSHA):* {tech_safety}"
+                    f"🔬 *ANÁLISIS TÉCNICO DE INGENIERÍA (SOFIA AI - CPC):*\n"
+                    f"• *Diagnóstico CPC:* {tech_diag}\n"
+                    f"• *Materiales/Herramientas a Bordo:* {tech_mat}\n"
+                    f"• *Seguridad (Cal/OSHA Title 8):* {tech_safety}{cal_str}\n\n"
+                    f"🛠️ *Licencia:* CSLB C-36 #1156542 | San Jose, CA\n"
+                    f"📞 *Central:* (669) 213-4422 | *Despacho:* (669) 234-2444"
                 )
                 import urllib.request
                 tg_url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
                 tg_payload = json.dumps({
                     "chat_id": tg_chat,
                     "text": msg_tg,
-                    "parse_mode": "Markdown"
+                    "parse_mode": "Markdown",
+                    "disable_web_page_preview": True
                 }).encode("utf-8")
                 
                 try:
                     req_tg = urllib.request.Request(tg_url, data=tg_payload, headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
                     with urllib.request.urlopen(req_tg, timeout=10) as resp_tg:
-                        logger.info(f"📱 Alerta enviada a Telegram con status: {resp_tg.status}")
+                        logger.info(f"📱 Ficha completa enviada a Telegram con status: {resp_tg.status}")
                 except Exception as tg_inner_err:
-                    # Fallback en texto plano si falla el parseo de Markdown
                     tg_plain_payload = json.dumps({
                         "chat_id": tg_chat,
                         "text": msg_tg
                     }).encode("utf-8")
                     req_plain = urllib.request.Request(tg_url, data=tg_plain_payload, headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
                     with urllib.request.urlopen(req_plain, timeout=10) as resp_plain:
-                        logger.info(f"📱 Alerta enviada a Telegram (Plain text) con status: {resp_plain.status}")
+                        logger.info(f"📱 Ficha enviada a Telegram (Plain text) con status: {resp_plain.status}")
         except Exception as e:
             logger.error(f"Error enviando Telegram: {e}")
 
@@ -1051,31 +1057,35 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                 server.starttls()
                 server.login(email_user, email_pass)
                 
-                # A. Email interno al Owner / Técnico con REPORTE DUAL
+                # A. Email interno al Owner / Técnico con REPORTE DUAL COMPLETO
                 msg_owner = MIMEMultipart()
                 msg_owner['From'] = f"Morales Plumbing Dispatch <{email_user}>"
                 msg_owner['To'] = email_user
-                msg_owner['Subject'] = f"🚨 Nueva Orden de Trabajo - {name} ({code})"
+                msg_owner['Subject'] = f"🚨 Nueva Orden de Trabajo - {name} ({code}) - {scheduled_time}"
                 body_owner = (
-                    f"MORALES PLUMBING — REPORTE DE DESPACHO TÉCNICO\n\n"
+                    f"MORALES PLUMBING — FICHA TÉCNICA DE DESPACHO\n"
+                    f"================================================\n\n"
                     f"Ticket ID: {code}\n"
+                    f"Prioridad: {'EMERGENCIA P0/P1' if is_emergency else 'PROGRAMADA'}\n"
                     f"Cliente: {name}\n"
                     f"Teléfono: {phone}\n"
                     f"Email: {email}\n"
                     f"Dirección: {address}\n"
                     f"Ventana Asignada: {scheduled_time}\n"
+                    f"Google Calendar: {cal_link if cal_link else 'N/A'}\n"
                     f"Origen: {source}\n\n"
-                    f"--- VERSIÓN DEL CLIENTE ---\n"
+                    f"--- REPORTE DEL CLIENTE ---\n"
                     f"{diagnosis}\n\n"
-                    f"--- ANÁLISIS TÉCNICO PRELIMINAR (SOFIA AI) ---\n"
+                    f"--- ANÁLISIS TÉCNICO DE INGENIERÍA (SOFIA AI - CPC) ---\n"
                     f"Diagnóstico CPC: {tech_diag}\n"
-                    f"Materiales Sugeridos: {tech_mat}\n"
-                    f"Consideraciones de Seguridad: {tech_safety}\n\n"
+                    f"Materiales y Herramientas Sugeridas: {tech_mat}\n"
+                    f"Seguridad Cal/OSHA: {tech_safety}\n\n"
+                    f"Licencia: CSLB C-36 #1156542 | San Jose, CA\n"
                     f"Central: (669) 213-4422 | Despacho: (669) 234-2444\n"
                 )
                 msg_owner.attach(MIMEText(body_owner, 'plain'))
                 server.sendmail(email_user, email_user, msg_owner.as_string())
-                logger.info(f"📧 Email de despacho enviado al Owner: {email_user}")
+                logger.info(f"📧 Ficha completa enviada al Owner: {email_user}")
 
                 # B. Email HTML al Cliente (Si dejó email)
                 if email and "@" in email:
@@ -1345,6 +1355,19 @@ def _get_base_url(request: Request) -> str:
         return f"{forwarded_proto}://{forwarded_host}"
     return os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
 
+def _start_call_recording_bg(call_sid: str):
+    """Inicia la grabación dual de la llamada en segundo plano sin bloquear la respuesta TwiML"""
+    try:
+        tw_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        tw_token = os.getenv("TWILIO_AUTH_TOKEN")
+        if call_sid and tw_sid and tw_token and not call_sid.startswith("CA_TEST") and not call_sid.startswith("CA_LIVE_TEST"):
+            from twilio.rest import Client as TwilioClient
+            tw_cli = TwilioClient(tw_sid, tw_token)
+            tw_cli.calls(call_sid).recordings.create(recording_channels="dual")
+            logger.info(f"🎙️ Grabación automática iniciada en segundo plano para {call_sid}")
+    except Exception as e:
+        logger.warning(f"Aviso inicio de grabación en segundo plano: {e}")
+
 @app.api_route("/incoming-call", methods=["GET", "POST"])
 async def incoming_call_ws(request: Request):
     """
@@ -1352,21 +1375,16 @@ async def incoming_call_ws(request: Request):
     - Ejecución directa vía Twilio Carrier Voice Core (G.711 nativo sin conversión)
     - Síntesis de voz ultra-nítida con Amazon Polly Neural (Polly.Mia-Neural) y prosodia pausada (rate=90%)
     - Inteligencia artificial Sofia Lin con Gemini 3.5/3.6 y PriceBook oficial
-    - Grabación de llamada dual automática para cumplimiento legal y control de calidad
+    - Grabación de llamada dual automática en segundo plano
     """
-    # Iniciar grabación automática de la llamada en Twilio
     try:
         form_data = await request.form() if request.method == "POST" else {}
         call_sid = form_data.get("CallSid") or request.query_params.get("CallSid")
-        tw_sid = os.getenv("TWILIO_ACCOUNT_SID")
-        tw_token = os.getenv("TWILIO_AUTH_TOKEN")
-        if call_sid and tw_sid and tw_token:
-            from twilio.rest import Client as TwilioClient
-            tw_cli = TwilioClient(tw_sid, tw_token)
-            tw_cli.calls(call_sid).recordings.create(recording_channels="dual")
-            logger.info(f"🎙️ Grabación automática iniciada para la llamada {call_sid}")
-    except Exception as rec_err:
-        logger.warning(f"Aviso inicio de grabación: {rec_err}")
+        if call_sid:
+            import threading
+            threading.Thread(target=_start_call_recording_bg, args=(call_sid,), daemon=True).start()
+    except Exception as e:
+        logger.warning(f"Aviso captura CallSid: {e}")
 
     response = VoiceResponse()
     base_url = _get_base_url(request)
@@ -1395,15 +1413,11 @@ async def voice_incoming_direct(request: Request):
     try:
         form_data = await request.form() if request.method == "POST" else {}
         call_sid = form_data.get("CallSid") or request.query_params.get("CallSid")
-        tw_sid = os.getenv("TWILIO_ACCOUNT_SID")
-        tw_token = os.getenv("TWILIO_AUTH_TOKEN")
-        if call_sid and tw_sid and tw_token:
-            from twilio.rest import Client as TwilioClient
-            tw_cli = TwilioClient(tw_sid, tw_token)
-            tw_cli.calls(call_sid).recordings.create(recording_channels="dual")
-            logger.info(f"🎙️ Grabación automática iniciada para la llamada {call_sid}")
-    except Exception as rec_err:
-        logger.warning(f"Aviso inicio de grabación: {rec_err}")
+        if call_sid:
+            import threading
+            threading.Thread(target=_start_call_recording_bg, args=(call_sid,), daemon=True).start()
+    except Exception as e:
+        logger.warning(f"Aviso captura CallSid: {e}")
 
     response = VoiceResponse()
     base_url = _get_base_url(request)
