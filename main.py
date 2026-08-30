@@ -1329,8 +1329,22 @@ async def incoming_call_ws(request: Request):
     - Ejecución directa vía Twilio Carrier Voice Core (G.711 nativo sin conversión)
     - Síntesis de voz ultra-nítida con Amazon Polly Neural (Polly.Mia-Neural) y prosodia pausada (rate=90%)
     - Inteligencia artificial Sofia Lin con Gemini 3.5/3.6 y PriceBook oficial
-    - 100% inmune a estática de códec y desconexiones de WebSocket
+    - Grabación de llamada dual automática para cumplimiento legal y control de calidad
     """
+    # Iniciar grabación automática de la llamada en Twilio
+    try:
+        form_data = await request.form() if request.method == "POST" else {}
+        call_sid = form_data.get("CallSid") or request.query_params.get("CallSid")
+        tw_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        tw_token = os.getenv("TWILIO_AUTH_TOKEN")
+        if call_sid and tw_sid and tw_token:
+            from twilio.rest import Client as TwilioClient
+            tw_cli = TwilioClient(tw_sid, tw_token)
+            tw_cli.calls(call_sid).recordings.create(recording_channels="dual")
+            logger.info(f"🎙️ Grabación automática iniciada para la llamada {call_sid}")
+    except Exception as rec_err:
+        logger.warning(f"Aviso inicio de grabación: {rec_err}")
+
     response = VoiceResponse()
     base_url = _get_base_url(request)
     
@@ -1355,6 +1369,19 @@ async def incoming_call_ws(request: Request):
 @app.api_route("/voice/incoming", methods=["GET", "POST"])
 async def voice_incoming_direct(request: Request):
     """Endpoint directo de telefonía de alta fidelidad (Zero-Static Voice Engine)"""
+    try:
+        form_data = await request.form() if request.method == "POST" else {}
+        call_sid = form_data.get("CallSid") or request.query_params.get("CallSid")
+        tw_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        tw_token = os.getenv("TWILIO_AUTH_TOKEN")
+        if call_sid and tw_sid and tw_token:
+            from twilio.rest import Client as TwilioClient
+            tw_cli = TwilioClient(tw_sid, tw_token)
+            tw_cli.calls(call_sid).recordings.create(recording_channels="dual")
+            logger.info(f"🎙️ Grabación automática iniciada para la llamada {call_sid}")
+    except Exception as rec_err:
+        logger.warning(f"Aviso inicio de grabación: {rec_err}")
+
     response = VoiceResponse()
     base_url = _get_base_url(request)
     
