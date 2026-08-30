@@ -1040,27 +1040,34 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                     f"🛠️ *Licencia:* CSLB C-36 #1156542 | San Jose, CA\n"
                     f"📞 *Central:* (669) 213-4422 | *Despacho:* (669) 234-2444"
                 )
-                import urllib.request
+                import subprocess, ssl
                 tg_url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
-                tg_payload = json.dumps({
+                tg_payload_str = json.dumps({
                     "chat_id": tg_chat,
                     "text": msg_tg,
                     "parse_mode": "Markdown",
                     "disable_web_page_preview": True
-                }).encode("utf-8")
+                })
                 
+                # Intento 1: Curl directo con bypass de revocación SSL de Windows
                 try:
-                    req_tg = urllib.request.Request(tg_url, data=tg_payload, headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
-                    with urllib.request.urlopen(req_tg, timeout=10) as resp_tg:
-                        logger.info(f"📱 Ficha completa enviada a Telegram con status: {resp_tg.status}")
-                except Exception as tg_inner_err:
-                    tg_plain_payload = json.dumps({
-                        "chat_id": tg_chat,
-                        "text": msg_tg
-                    }).encode("utf-8")
-                    req_plain = urllib.request.Request(tg_url, data=tg_plain_payload, headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
-                    with urllib.request.urlopen(req_plain, timeout=10) as resp_plain:
-                        logger.info(f"📱 Ficha enviada a Telegram (Plain text) con status: {resp_plain.status}")
+                    cmd_tg = ["curl.exe", "--ssl-no-revoke", "-s", "-X", "POST", tg_url, "-H", "Content-Type: application/json", "-d", tg_payload_str]
+                    res_c = subprocess.run(cmd_tg, capture_output=True, text=True, timeout=10)
+                    if '"ok":true' in res_c.stdout:
+                        logger.info("📱 Ficha completa entregada a Telegram exitosamente vía curl")
+                    else:
+                        raise Exception(f"Curl Telegram output: {res_c.stdout}")
+                except Exception as c_err:
+                    # Intento 2: urllib con contexto SSL permisivo
+                    try:
+                        ctx = ssl.create_default_context()
+                        ctx.check_hostname = False
+                        ctx.verify_mode = ssl.CERT_NONE
+                        req_tg = urllib.request.Request(tg_url, data=tg_payload_str.encode("utf-8"), headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
+                        with urllib.request.urlopen(req_tg, context=ctx, timeout=10) as resp_tg:
+                            logger.info(f"📱 Ficha completa enviada a Telegram con status: {resp_tg.status}")
+                    except Exception as tg_inner_err:
+                        logger.error(f"Error crítico enviando Telegram: {tg_inner_err}")
         except Exception as e:
             logger.error(f"Error enviando Telegram: {e}")
 
