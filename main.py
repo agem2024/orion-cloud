@@ -701,27 +701,39 @@ _Escribe cualquier pregunta para XONA_"""
     return {"ok": True}
 
 async def send_telegram_message(chat_id: int, text: str):
-    """Envía mensaje de texto a Telegram con fallback automático a texto plano"""
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
+    """Envía mensaje de texto a Telegram de forma infalible vía curl o HTTP"""
+    tok = os.getenv("TELEGRAM_BOT_TOKEN") or TELEGRAM_TOKEN
+    if not tok:
+        logger.error("TELEGRAM_BOT_TOKEN no configurado")
+        return False
+    url = f"https://api.telegram.org/bot{tok}/sendMessage"
+    payload_str = json.dumps({"chat_id": chat_id, "text": text, "parse_mode": "Markdown"})
+    
+    # 1. Intentar con curl.exe --ssl-no-revoke (Bypass de revocación SSL de Windows)
     try:
-        async with httpx.AsyncClient(timeout=10.0) as client:
-            resp = await client.post(url, json=payload)
-            if resp.status_code != 200:
-                # Fallback sin markdown
-                payload_plain = {"chat_id": chat_id, "text": text}
-                await client.post(url, json=payload_plain)
+        import subprocess
+        cmd = ["curl.exe", "--ssl-no-revoke", "-s", "-X", "POST", url, "-H", "Content-Type: application/json", "-d", payload_str]
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=10)
+        if '"ok":true' in res.stdout:
+            return True
+        # Si falló por markdown, reintentar en texto plano
+        plain_payload_str = json.dumps({"chat_id": chat_id, "text": text})
+        cmd_plain = ["curl.exe", "--ssl-no-revoke", "-s", "-X", "POST", url, "-H", "Content-Type: application/json", "-d", plain_payload_str]
+        res_plain = subprocess.run(cmd_plain, capture_output=True, text=True, timeout=10)
+        if '"ok":true' in res_plain.stdout:
+            return True
+    except Exception as curl_err:
+        logger.warning(f"Aviso curl Telegram: {curl_err}")
+
+    # 2. Respaldo HTTP asíncrono
+    try:
+        async with httpx.AsyncClient(timeout=10.0, verify=False) as client:
+            resp = await client.post(url, json={"chat_id": chat_id, "text": text})
+            if resp.status_code == 200:
+                return True
     except Exception as e:
-        logger.error(f"Error en send_telegram_message: {e}")
-        try:
-            # Respaldo síncrono con urllib si httpx falla
-            import urllib.request
-            data = json.dumps({"chat_id": chat_id, "text": text}).encode("utf-8")
-            req = urllib.request.Request(url, data=data, headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
-            with urllib.request.urlopen(req, timeout=10) as r:
-                pass
-        except Exception as e2:
-            logger.error(f"Error crítico en fallback Telegram: {e2}")
+        logger.error(f"Error crítico en send_telegram_message: {e}")
+    return False
 
 async def send_telegram_voice(chat_id: int, voice_url: str):
     """EnvÃ­a audio/voz a Telegram (URL)"""
