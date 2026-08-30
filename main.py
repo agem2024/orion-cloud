@@ -420,9 +420,10 @@ async def api_web_appointment(request: Request):
         logger.error(f"Error processing web appointment: {e}")
         return {"success": False, "error": str(e)}
 
-@app.post(f"/webhook/{TELEGRAM_TOKEN}")
-async def telegram_webhook(req: Request):
-    """Endpoint principal para recibir updates de Telegram"""
+@app.api_route("/telegram/webhook", methods=["GET", "POST"])
+@app.api_route("/webhook/{token:path}", methods=["GET", "POST"])
+async def telegram_webhook(req: Request, token: str = ""):
+    """Endpoint principal para recibir updates de Telegram (soporta paths y tokens codificados)"""
     try:
         data = await req.json()
         
