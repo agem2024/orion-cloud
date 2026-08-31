@@ -88,10 +88,10 @@ INFORMACION CORPORATIVA Y REGLAS MAESTRAS INMUTABLES
 
 def call_llm_hybrid(user_prompt: str, system_prompt: str = _SOFIA_SYSTEM_PROMPT, max_tokens: int = 1200, json_mode: bool = False) -> str:
     """
-    Motor híbrido de IA: Intenta Google Gemini (gemini-3.6-flash) y OpenAI gpt-4o-mini con fallback mutuo.
-    Soporta json_mode nativo para asegurar JSON válido.
+    Motor de IA de Sofia Lin: Google Gemini (gemini-2.5-flash / gemini-2.0-flash / gemini-1.5-flash) como motor principal.
+    Soporta json_mode nativo para asegurar JSON valido.
     """
-    # 1. Intentar Google Gemini (Activo y de ultra baja latencia con fallback multi-modelo)
+    # 1. Intentar Google Gemini (Motor Principal de Alta Velocidad)
     gemini_key = os.getenv("GEMINI_API_KEY")
     if gemini_key:
         try:
@@ -107,7 +107,7 @@ def call_llm_hybrid(user_prompt: str, system_prompt: str = _SOFIA_SYSTEM_PROMPT,
                 config_args["response_mime_type"] = "application/json"
             g_config = types.GenerateContentConfig(**config_args)
             
-            for g_model in ("gemini-3.5-flash-lite", "gemini-3.6-flash"):
+            for g_model in ("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"):
                 try:
                     g_resp = g_client.models.generate_content(
                         model=g_model,
@@ -121,7 +121,7 @@ def call_llm_hybrid(user_prompt: str, system_prompt: str = _SOFIA_SYSTEM_PROMPT,
         except Exception as ge:
             logger.warning(f"Aviso general Gemini en call_llm_hybrid: {ge}")
 
-    # 2. Intentar OpenAI GPT-4o-mini
+    # 2. Fallback secundario OpenAI si existe llave activa
     openai_key = os.getenv("OPENAI_API_KEY")
     if openai_key:
         try:
@@ -143,7 +143,7 @@ def call_llm_hybrid(user_prompt: str, system_prompt: str = _SOFIA_SYSTEM_PROMPT,
         except Exception as oe:
             logger.warning(f"Aviso OpenAI en call_llm_hybrid: {oe}")
 
-    return "Gracias por contactar a Morales Plumbing (Lic. C-36 #1156542). Comuníquese a nuestra central al (669) 213-4422 o despacho directo al (669) 234-2444."
+    return "Gracias por contactar a Morales Plumbing (Lic. C-36 #1156542). Comuniquese a nuestra central al (669) 213-4422 o despacho directo al (669) 234-2444."
 
 def sofia_chat(text: str, lang: str = "es") -> str:
     """Motor de texto nativo de Sofia Lin con inteligencia híbrida Gemini/OpenAI."""
@@ -239,7 +239,7 @@ JSON:"""
                     f" *Próximos pasos:* Uno de nuestros plomeros certificados acudirá con su camión taller en la ventana programada. "
                     f"Recibirá un mensaje de notificación cuando el técnico esté en camino (On-My-Way) con seguimiento satelital.\n\n"
                     f"[TELEFONO] *Central:* (669) 213-4422 | *Despacho de Guardia:* (669) 234-2444\n"
-                    f"[WEB] *Web:* www.moralesplumbing.com"
+                    f"[WEB] *Web:* www.morales-plumbing.com"
                 )
             else:
                 return (
@@ -255,7 +255,7 @@ JSON:"""
                     f" *Next steps:* A certified technician with a mobile workshop unit will arrive within the scheduled window. "
                     f"You will receive an On-My-Way tracking notification once the technician is en route.\n\n"
                     f"[TELEFONO] *Office:* (669) 213-4422 | *Direct Dispatch:* (669) 234-2444\n"
-                    f"[WEB] *Web:* www.moralesplumbing.com"
+                    f"[WEB] *Web:* www.morales-plumbing.com"
                 )
 
 
@@ -1228,17 +1228,8 @@ Conversation History:
 JSON:"""
 
     try:
-        import openai
-        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[{"role": "user", "content": prompt}],
-            max_tokens=500
-        )
-        
         import json
-        raw_json = response.choices[0].message.content.strip()
+        raw_json = call_llm_hybrid(prompt, "Eres un extractor de datos JSON estricto para plomeria.", max_tokens=500, json_mode=True)
         if raw_json.startswith('```json'):
             raw_json = raw_json[7:]
         if raw_json.startswith('```'):
@@ -1248,18 +1239,18 @@ JSON:"""
         result = json.loads(raw_json.strip())
         return result
     except Exception as e:
-        logger.error(f"Voice AI OpenAI extract error: {e}")
+        logger.error(f"Voice AI extract error: {e}")
         return {"is_complete": False}
 
 def ask_voice_ai(user_input: str, call_sid: str, lang: str = "es") -> str:
     """Get AI response for voice calls - with conversation memory and extraction"""
     system_msg = VOICE_PROMPT_ES if lang == "es" else VOICE_PROMPT_EN
     
-    # Iniciar historial de sesión si no existe
+    # Iniciar historial de sesion si no existe
     if call_sid not in call_sessions:
         call_sessions[call_sid] = [{"role": "system", "content": system_msg}]
         
-    # Añadir input del usuario al historial
+    # Anadir input del usuario al historial
     call_sessions[call_sid].append({"role": "user", "content": user_input})
     
     # Extraer info usando TODO el historial
@@ -1272,38 +1263,35 @@ def ask_voice_ai(user_input: str, call_sid: str, lang: str = "es") -> str:
             email=appointment_info.get("email", "No provisto"),
             address=appointment_info.get("address", "No provisto"),
             status=appointment_info.get("status", "No provisto"),
-            diagnosis=appointment_info.get("diagnosis", "Inspección General"),
-            materials=appointment_info.get("materials", "Kit básico"),
+            diagnosis=appointment_info.get("diagnosis", "Inspeccion General"),
+            materials=appointment_info.get("materials", "Kit basico"),
             is_emergency=appointment_info.get("is_emergency", False),
             scheduled_time=appointment_info.get("scheduled_time", "ASAP"),
             source="phone_call"
         )
         
-        # Limpiar sesión para evitar doble guardado
+        # Limpiar sesion para evitar doble guardado
         del call_sessions[call_sid]
         
         if lang == "es":
-            return f"Perfecto, he agendado su cita con código {code}. Enviaremos a nuestro técnico de inmediato."
+            return f"Perfecto, he agendado su cita con codigo {code}. Enviaremos a nuestro tecnico de inmediato."
         else:
-            return f"Perfect, I've scheduled your appointment with code {code}. We will send our technician right away."
+            return f"Perfect, I have scheduled your appointment with code {code}. We will send our technician right away."
     
     try:
-        import openai
-        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=call_sessions[call_sid],
-            max_tokens=150
+        history_text = "\n".join(
+            f"{m['role']}: {m['content']}"
+            for m in call_sessions[call_sid]
+            if m.get("role") != "system"
         )
-        ai_response = response.choices[0].message.content.strip()
+        ai_response = call_llm_hybrid(history_text, system_prompt=system_msg, max_tokens=150)
         
         # Guardar respuesta de la IA en el historial
         call_sessions[call_sid].append({"role": "assistant", "content": ai_response})
         return ai_response
     except Exception as e:
-        logger.error(f"Voice AI OpenAI error: {e}")
-        return "Sorry, technical issue." if lang == "en" else "Perdona, problema técnico."
+        logger.error(f"Voice AI error: {e}")
+        return "Sorry, technical issue." if lang == "en" else "Perdone, problema tecnico."
 
 # API endpoint para ver citas (accesible por otros bots)
 @app.get("/api/appointments")
@@ -1717,7 +1705,7 @@ async def twilio_ws(websocket: WebSocket):
                                 break
                                 
                         elif data['event'] == 'stop':
-                            logger.info("⏹ Twilio Stream Stopped")
+                            logger.info("[STOP] Twilio Stream Stopped")
                             break
                 except WebSocketDisconnect:
                     logger.info("Twilio WebSocket disconnected.")
@@ -1854,14 +1842,14 @@ async def twilio_ws(websocket: WebSocket):
                     elapsed = asyncio.get_event_loop().time() - call_start_time
                     if elapsed >= 300 and not is_call_extended:
                         if is_booking_warranted:
-                            logger.info("⏱ Llamada activa con gestión de cita justificada: extendiendo 5 minutos adicionales (Máx 10 min).")
+                            logger.info("[TIEMPO] Llamada activa con gestion de cita justificada: extendiendo 5 minutos adicionales (Max 10 min).")
                             is_call_extended = True
                         else:
-                            logger.info("⏳ Llamada alcanzó el límite estándar de 5 minutos (300s). Finalizando para optimizar recursos.")
+                            logger.info("[TIEMPO] Llamada alcanzo el limite estandar de 5 minutos (300s). Finalizando para optimizar recursos.")
                             await websocket.close()
                             break
                     elif elapsed >= 600:
-                        logger.info("⏳ Llamada alcanzó el límite máximo extendido de 10 minutos (600s). Finalizando.")
+                        logger.info("[TIEMPO] Llamada alcanzo el limite maximo extendido de 10 minutos (600s). Finalizando.")
                         await websocket.close()
                         break
 
