@@ -112,7 +112,7 @@ def call_llm_hybrid(user_prompt: str, system_prompt: str = _SOFIA_SYSTEM_PROMPT,
                 config_args["response_mime_type"] = "application/json"
             g_config = types.GenerateContentConfig(**config_args)
             
-            for g_model in ("gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"):
+            for g_model in ("gemini-3-flash-preview", "gemini-3.1-flash-lite-preview", "gemini-3.1-pro-preview", "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"):
                 try:
                     g_resp = g_client.models.generate_content(
                         model=g_model,
