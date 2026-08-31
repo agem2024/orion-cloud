@@ -37,7 +37,7 @@ async def telegram_webhook(request: Request):
                 "transcript": text,
                 "channel": "telegram"
             })
-            reply = result.get("audio_response_text", "Gracias por contactar a Morales Plumbing.")
+            reply = result.get("audio_response_text", "Thank you for contacting Morales Plumbing. How can we help you today?")
             send_telegram_message(chat_id, reply)
             return {"status": "processed"}
     except Exception as e:
@@ -65,7 +65,7 @@ async def twilio_whatsapp_webhook(request: Request):
             })
             reply_text = result.get(
                 "audio_response_text",
-                "Gracias por contactar a Morales Plumbing. ¿En qué podemos ayudarle?"
+                "Thank you for contacting Morales Plumbing. How can we help you today?"
             )
             resp.message(reply_text)
 
@@ -73,5 +73,5 @@ async def twilio_whatsapp_webhook(request: Request):
     except Exception as e:
         logger.error(f"WhatsApp webhook error: {e}")
         resp = MessagingResponse()
-        resp.message("Gracias por contactar a Morales Plumbing. Un momento por favor.")
+        resp.message("Thank you for contacting Morales Plumbing. Please call us at (669) 213-4422.")
         return Response(content=str(resp), media_type="application/xml")
