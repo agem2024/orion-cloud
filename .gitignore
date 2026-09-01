@@ -1,4 +1,20 @@
-__pycache__/
-*.pyc
+﻿# Security & Credentials
 .env
+*.env
+serviceAccountKey.json
+credentials.json
+*.pem
+*.key
+
+# Python
+__pycache__/
+*.py[cod]
+*.class
+*.so
 venv/
+env/
+.venv/
+
+# OS Files
+.DS_Store
+Thumbs.db

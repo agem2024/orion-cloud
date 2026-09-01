@@ -3,5 +3,12 @@ uvicorn[standard]
 httpx
 python-multipart
 openai
-google-genai>=1.0.0
 python-dotenv
+
+google-api-python-client
+google-auth-httplib2
+google-auth-oauthlib
+twilio
+websockets
+requests
+google-genai>=0.8.0

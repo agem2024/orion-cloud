@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Operativo - Orion Cloud AI | Morales Plumbing</title>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-dark: #0A192F;
+            --bg-darker: #060d1a;
+            --gold: #D4AF37;
+            --gold-hover: #F1C40F;
+            --text-light: #e6f1ff;
+            --text-dim: #8892b0;
+            --glass-bg: rgba(17, 34, 64, 0.6);
+            --glass-border: rgba(212, 175, 55, 0.2);
+            --danger: #ff4c4c;
+            --success: #28a745;
+        }
+
+        * {
+            box-sizing: border-box;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(135deg, var(--bg-darker) 0%, var(--bg-dark) 100%);
+            color: var(--text-light);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* --- LAYOUT & SIDEBAR --- */
+        .wrapper {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: var(--glass-bg);
+            backdrop-filter: blur(10px);
+            border-right: 1px solid var(--glass-border);
+            padding: 2rem 1rem;
+            position: fixed;
+            height: 100vh;
+            overflow-y: auto;
+        }
+
+        .sidebar-brand {
+            text-align: center;
+            margin-bottom: 2rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        .sidebar-brand img {
+            max-width: 150px;
+            margin-bottom: 10px;
+        }
+
+        .sidebar-brand h2 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--gold);
+            font-size: 1.1rem;
+            margin: 0;
+        }
+
+        .sidebar-nav ul {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .sidebar-nav li {
+            margin-bottom: 0.5rem;
+        }
+
+        .sidebar-nav a {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-dim);
+            text-decoration: none;
+            padding: 10px 15px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            font-weight: 600;
+        }
+
+        .sidebar-nav a:hover, .sidebar-nav a.active {
+            background: rgba(212, 175, 55, 0.1);
+            color: var(--gold);
+            transform: translateX(5px);
+        }
+
+        .main-content {
+            margin-left: 280px;
+            padding: 3rem 4rem;
+            width: calc(100% - 280px);
+            max-width: 1200px;
+        }
+
+        /* --- SECTIONS & GLASSMORPHISM --- */
+        section {
+            background: var(--glass-bg);
+            backdrop-filter: blur(15px);
+            border: 1px solid var(--glass-border);
+            border-radius: 16px;
+            padding: 2.5rem;
+            margin-bottom: 3rem;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1, h2, h3 {
+            font-family: 'Orbitron', sans-serif;
+            color: var(--gold);
+            margin-top: 0;
+        }
+
+        h2 {
+            font-size: 1.8rem;
+            border-bottom: 2px solid var(--glass-border);
+            padding-bottom: 0.5rem;
+            margin-bottom: 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        /* --- ALERTS & WARNINGS --- */
+        .alert {
+            display: flex;
+            align-items: flex-start;
+            gap: 15px;
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin-bottom: 1.5rem;
+            background: rgba(255, 76, 76, 0.1);
+            border-left: 4px solid var(--danger);
+        }
+
+        .alert-icon {
+            color: var(--danger);
+            font-size: 1.5rem;
+        }
+
+        .alert-content h4 {
+            margin: 0 0 5px 0;
+            color: var(--danger);
+        }
+
+        .alert-content p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: #ffb3b3;
+        }
+
+        /* --- INFOGRAPHICS & DIAGRAMS --- */
+        .diagram-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.3);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px dashed var(--gold);
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .diagram-node {
+            text-align: center;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .diagram-node i {
+            font-size: 2.5rem;
+            color: var(--gold);
+            margin-bottom: 10px;
+            background: rgba(212, 175, 55, 0.1);
+            padding: 20px;
+            border-radius: 50%;
+            border: 1px solid var(--glass-border);
+        }
+
+        .diagram-arrow {
+            color: var(--text-dim);
+            font-size: 1.5rem;
+        }
+
+        /* --- STEP BY STEP --- */
+        .timeline {
+            position: relative;
+            padding-left: 30px;
+            border-left: 2px solid var(--glass-border);
+        }
+
+        .timeline-step {
+            position: relative;
+            margin-bottom: 2rem;
+        }
+
+        .timeline-step::before {
+            content: '';
+            position: absolute;
+            left: -37px;
+            top: 0;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--gold);
+            border: 4px solid var(--bg-dark);
+        }
+
+        .timeline-step h4 {
+            margin: 0 0 10px 0;
+            color: var(--text-light);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .timeline-step p {
+            margin: 0;
+            color: var(--text-dim);
+            font-size: 0.95rem;
+        }
+
+        /* --- TABLES --- */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 1rem;
+        }
+
+        th, td {
+            padding: 1rem;
+            text-align: left;
+            border-bottom: 1px solid var(--glass-border);
+        }
+
+        th {
+            color: var(--gold);
+            font-family: 'Orbitron', sans-serif;
+            background: rgba(0,0,0,0.2);
+        }
+
+        td {
+            color: var(--text-dim);
+        }
+
+        .badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            font-family: monospace;
+        }
+
+        .badge-cmd { background: rgba(212,175,55,0.2); color: var(--gold); border: 1px solid var(--gold); }
+
+        /* --- RESPONSIVE --- */
+        @media (max-width: 900px) {
+            .wrapper { flex-direction: column; }
+            .sidebar { width: 100%; height: auto; position: relative; border-right: none; border-bottom: 1px solid var(--glass-border); }
+            .main-content { margin-left: 0; width: 100%; padding: 2rem; }
+            .diagram-arrow { display: none; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="wrapper">
+    <!-- SIDEBAR NAVIGATION -->
+    <aside class="sidebar">
+        <div class="sidebar-brand">
+            <img src="/logo" alt="Morales Plumbing" onerror="this.src='logo_portada.png'; this.onerror=null;">
+            <h2>ORION CLOUD v3.0</h2>
+            <p style="font-size:0.75rem; color:var(--text-dim);">Manual Operativo Técnico</p>
+        </div>
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="#sec-portada"><i class="fas fa-id-card"></i> 1. Identificación</a></li>
+                <li><a href="#sec-intro"><i class="fas fa-info-circle"></i> 2. Introducción</a></li>
+                <li><a href="#sec-seguridad"><i class="fas fa-shield-alt"></i> 3. Seguridad y CCPA</a></li>
+                <li><a href="#sec-componentes"><i class="fas fa-project-diagram"></i> 4. Componentes</a></li>
+                <li><a href="#sec-operacion"><i class="fas fa-cogs"></i> 5. Operación (Paso a Paso)</a></li>
+                <li><a href="#sec-mantenimiento"><i class="fas fa-wrench"></i> 6. Mantenimiento</a></li>
+                <li><a href="#sec-troubleshooting"><i class="fas fa-bug"></i> 7. Troubleshooting</a></li>
+                <li><a href="#sec-soporte"><i class="fas fa-headset"></i> 8. Soporte y Garantía</a></li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- MAIN CONTENT -->
+    <main class="main-content">
+        
+        <!-- 1. PORTADA -->
+        <section id="sec-portada" style="text-align: center; padding: 4rem 2rem;">
+            <img src="/logo" alt="Logo" style="max-width:250px; margin-bottom:20px;" onerror="this.src='logo_portada.png'; this.onerror=null;">
+            <h1 style="font-size: 2.5rem;">Manual Operativo Técnico</h1>
+            <h3 style="color: var(--text-light);">Sistema de IA y Automatización Web</h3>
+            <div style="margin-top: 2rem; color: var(--text-dim); font-size: 0.9rem;">
+                <p><strong>Producto:</strong> Orion Cloud AI Framework</p>
+                <p><strong>Versión:</strong> v3.0 (Integración Web & Firebase)</p>
+                <p><strong>Propietario:</strong> Morales Plumbing (Lic. C-36 #1156542)</p>
+                <p><strong>Fecha de Emisión:</strong> Agosto 2026</p>
+            </div>
+        </section>
+
+        <!-- 2. INTRODUCCIÓN -->
+        <section id="sec-intro">
+            <h2><i class="fas fa-info-circle"></i> 2. Introducción y Propósito</h2>
+            <p>Este documento es la guía técnica y operativa oficial para administrar el ecosistema digital de Morales Plumbing. El propósito de este manual es garantizar que el equipo administrativo (Dueño, Dispatcher) comprenda y opere correctamente el Asistente Orion, gestione las citas automatizadas y mantenga el sistema estable.</p>
+            <p><strong>Perfil del Usuario:</strong> Dirigido a Administradores y Personal de Soporte Interno. No se requieren conocimientos avanzados de programación para la operación diaria, pero sí seguimiento estricto de este protocolo.</p>
+        </section>
+
+        <!-- 3. SEGURIDAD -->
+        <section id="sec-seguridad">
+            <h2><i class="fas fa-shield-alt"></i> 3. Advertencias y Seguridad</h2>
+            
+            <div class="alert">
+                <div class="alert-icon"><i class="fas fa-exclamation-triangle"></i></div>
+                <div class="alert-content">
+                    <h4>Cumplimiento CCPA Estricto</h4>
+                    <p>La información almacenada en Firebase (Nombres, Teléfonos, Direcciones) está protegida bajo la Ley de Privacidad del Consumidor de California (CCPA). <strong>NUNCA</strong> exporte ni comparta estos datos fuera del entorno seguro (Render/Firebase).</p>
+                </div>
+            </div>
+
+            <div class="alert" style="background: rgba(255, 152, 0, 0.1); border-left-color: #ff9800;">
+                <div class="alert-icon" style="color: #ff9800;"><i class="fas fa-key"></i></div>
+                <div class="alert-content">
+                    <h4 style="color: #ff9800;">Protección de Tokens</h4>
+                    <p style="color: #ffcc80;">No altere el archivo <code>serviceAccountKey.json</code> ni comparta su <code>TELEGRAM_BOT_TOKEN</code>. Si sospecha que una credencial ha sido expuesta, contacte a soporte inmediatamente para rotar las llaves.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 4. COMPONENTES -->
+        <section id="sec-componentes">
+            <h2><i class="fas fa-project-diagram"></i> 4. Descripción General y Componentes</h2>
+            <p>El ecosistema Orion Cloud está compuesto por 4 pilares interconectados de forma segura mediante APIs:</p>
+            
+            <div class="diagram-container">
+                <div class="diagram-node">
+                    <i class="fas fa-laptop-code"></i>
+                    <h4>Frontend Web</h4>
+                    <span style="font-size:0.8rem; color:var(--text-dim)">Página Oficial y Formularios (Sin fricción)</span>
+                </div>
+                <div class="diagram-arrow"><i class="fas fa-chevron-right"></i></div>
+                <div class="diagram-node">
+                    <i class="fas fa-cloud"></i>
+                    <h4>Render Server</h4>
+                    <span style="font-size:0.8rem; color:var(--text-dim)">Cerebro Python (main.py) y APIs Seguras</span>
+                </div>
+                <div class="diagram-arrow"><i class="fas fa-chevron-right"></i></div>
+                <div class="diagram-node">
+                    <i class="fas fa-database"></i>
+                    <h4>Firebase</h4>
+                    <span style="font-size:0.8rem; color:var(--text-dim)">Almacenamiento NoSQL y CCPA</span>
+                </div>
+                <div class="diagram-arrow"><i class="fas fa-chevron-down" style="transform: rotate(-45deg);"></i></div>
+                <div class="diagram-node">
+                    <i class="fab fa-telegram"></i>
+                    <h4>Telegram Owner</h4>
+                    <span style="font-size:0.8rem; color:var(--text-dim)">Alertas Push Instantáneas</span>
+                </div>
+            </div>
+
+            <h3 style="margin-top: 2rem;">Lista de Comandos Nativos (Telegram)</h3>
+            <table>
+                <tr><th>Comando</th><th>Acción</th></tr>
+                <tr><td><span class="badge badge-cmd">/acutor</span> o <span class="badge badge-cmd">/manual</span></td><td>Despliega este manual operativo.</td></tr>
+                <tr><td><span class="badge badge-cmd">/say [texto]</span></td><td>Genera una nota de voz mediante IA con el texto indicado.</td></tr>
+                <tr><td><span class="badge badge-cmd">/tr [txt] a [lang]</span></td><td>Traduce textos para comunicación multilingüe.</td></tr>
+                <tr><td><span class="badge badge-cmd">/status</span></td><td>Verifica si el servidor de Render y webhooks están activos.</td></tr>
+            </table>
+        </section>
+
+        <!-- 5. OPERACIÓN PASO A PASO -->
+        <section id="sec-operacion">
+            <h2><i class="fas fa-cogs"></i> 5. Instrucciones de Operación (Paso a Paso)</h2>
+            <p>A continuación se detalla el flujo exacto de qué sucede y cómo debes actuar cuando un cliente agenda una cita desde la web.</p>
+            
+            <div class="timeline">
+                <div class="timeline-step">
+                    <h4><i class="fas fa-user-edit" style="color:var(--gold)"></i> Paso 1: El cliente envía el formulario</h4>
+                    <p>El cliente llena sus datos en la página web. El sistema previene el uso de la app de WhatsApp y envía silenciosamente los datos cifrados a Render.</p>
+                </div>
+                <div class="timeline-step">
+                    <h4><i class="fas fa-server" style="color:var(--gold)"></i> Paso 2: Procesamiento y Respaldo</h4>
+                    <p>Orion asigna un ID único (ej. MP-4521) y hace un respaldo de la cita en Firebase Firestore de forma inmediata.</p>
+                </div>
+                <div class="timeline-step">
+                    <h4><i class="fas fa-envelope-open-text" style="color:var(--gold)"></i> Paso 3: Notificación Multicanal</h4>
+                    <p>El cliente recibe un correo HTML profesional confirmando la recepción y sugiriendo el sistema "Hágalo Usted Mismo". Simultáneamente, el servidor despacha un Webhook a Telegram.</p>
+                </div>
+                <div class="timeline-step">
+                    <h4><i class="fas fa-mobile-alt" style="color:var(--gold)"></i> Paso 4: Acción del Administrador</h4>
+                    <p>Tu celular vibrará con un mensaje de Telegram. Debes leer el diagnóstico y los materiales sugeridos por la IA, y proceder a llamar al cliente o enviar al técnico.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 6. MANTENIMIENTO -->
+        <section id="sec-mantenimiento">
+            <h2><i class="fas fa-wrench"></i> 6. Mantenimiento y Cuidado</h2>
+            <ul>
+                <li><strong>Revisión Diaria:</strong> Ejecute el comando <code>/status</code> en Telegram al inicio del día para asegurar que la nube está operativa.</li>
+                <li><strong>Limpieza de Logs:</strong> Cada fin de mes, el script de seguridad (`security_backup.py`) zipea los logs. Descargue estos archivos desde el panel de Render y libere espacio.</li>
+                <li><strong>Actualización de Credenciales:</strong> Si se cambia la contraseña del correo `moralesplumbing026@gmail.com`, debe actualizar la variable de entorno `EMAIL_PASS` en el Dashboard de Render inmediatamente o los correos a clientes fallarán.</li>
+            </ul>
+        </section>
+
+        <!-- 7. TROUBLESHOOTING -->
+        <section id="sec-troubleshooting">
+            <h2><i class="fas fa-bug"></i> 7. Guía de Solución de Problemas</h2>
+            <table>
+                <tr>
+                    <th>Falla / Síntoma</th>
+                    <th>Causa Probable</th>
+                    <th>Solución Inmediata</th>
+                </tr>
+                <tr>
+                    <td>No llegan notificaciones a Telegram</td>
+                    <td>Render entró en suspensión (Sleep) o Token inválido.</td>
+                    <td>Envíe el comando <code>/start</code>. Si no hay respuesta, reinicie el servicio web en el panel de Render.</td>
+                </tr>
+                <tr>
+                    <td>El cliente no recibe el correo HTML</td>
+                    <td>Contraseña de Gmail cambiada o Bloqueo por SPAM.</td>
+                    <td>Revise la carpeta de enviados de Gmail. Actualice <code>EMAIL_PASS</code> en variables de entorno.</td>
+                </tr>
+                <tr>
+                    <td>Error 500 al agendar en la web</td>
+                    <td>Firebase desconfigurado (ServiceAccount).</td>
+                    <td>Verifique que el archivo <code>serviceAccountKey.json</code> esté intacto en el servidor.</td>
+                </tr>
+            </table>
+        </section>
+
+        <!-- 8. SOPORTE -->
+        <section id="sec-soporte" style="margin-bottom: 0;">
+            <h2><i class="fas fa-headset"></i> 8. Garantía y Soporte Técnico</h2>
+            <p>El sistema Orion Cloud cuenta con arquitectura de auto-recuperación, pero ante cualquier falla crítica que no se solucione con la sección anterior, contacte a soporte corporativo:</p>
+            <div style="background: rgba(0,0,0,0.3); padding: 1.5rem; border-radius: 8px; border: 1px solid var(--glass-border); display: flex; gap: 20px; flex-wrap: wrap;">
+                <div>
+                    <strong style="color:var(--gold);">Desarrollo y Arquitectura:</strong><br>
+                    <span style="color:var(--text-dim);">Equipo de Ingeniería de Agentes (Google Antigravity / Orion)</span>
+                </div>
+                <div>
+                    <strong style="color:var(--gold);">SLA (Tiempo de Respuesta):</strong><br>
+                    <span style="color:var(--text-dim);">Soporte Prioritario 24/7 para Caídas Críticas</span>
+                </div>
+            </div>
+        </section>
+
+    </main>
+</div>
+
+</body>
+</html>
