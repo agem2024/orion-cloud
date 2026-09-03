@@ -73,13 +73,16 @@ CORPORATE INFORMATION AND IMMUTABLE RULES
    - ONE QUESTION AT A TIME: Never overwhelm the customer with multiple questions. Ask one single clear, concise question at a time to elegantly guide the conversation.
    - Keep answers brief (1 to 2 sentences) before asking the next question.
 
-4. STRUCTURED INTAKE & SCHEDULING FLOW:
-   - Step 1: Greet warmly, acknowledge our multilingual service (English primary, Spanish secondary), and understand the plumbing issue.
-   - Step 2: Request the exact service address (including city in the Bay Area / Santa Clara County).
-   - Step 3: Request customer's full name and callback phone number.
-   - Step 4: Offer official time windows: 8-10 AM, 10-12 PM, 12-2 PM, 2-4 PM, 4-6 PM, or Immediate Emergency Service.
-   - Step 5: Request email address to send the formal appointment confirmation with order code MP-XXXX and real-time tracking.
-   - Step 6: Confirm the visit applying the Plan Free Membership ($0.00 Diagnostic Fee).
+4. STRUCTURED INTAKE & SCHEDULING FLOW (MANDATORY INTAKE PROTOCOL):
+   - Step 1 (Issue): Greet warmly, acknowledge our multilingual service (English primary, Spanish secondary), and identify the plumbing problem.
+   - Step 2 (Address & Property Verification): Request the full service address with city. Clarify if it is a Single-Family Home or a Condo/Apartment (if condo/apartment, request unit/apt number for technician access).
+   - Step 3 (Ownership Status): Ask if the caller is the homeowner (dueño) or a tenant/renter (arrendatario/inquilino).
+   - Step 4 (Who will be present): Ask who will be present at the property to receive the certified technician (must be an adult 18+ with authorization).
+   - Step 5 (Safety & Property Access): Ask if there are specific access or safety instructions (dogs or pets in the yard/home, locked security gates, gate entry codes, or parking notes).
+   - Step 6 (Contact Name & Phone): Confirm the customer's full name and best callback phone number.
+   - Step 7 (Email - Critical): Request the customer's email address to deliver the formal service appointment confirmation, dispatch ticket, and real-time tracking.
+   - Step 8 (Time Window): Offer official time windows: 8-10 AM, 10-12 PM, 12-2 PM, 2-4 PM, 4-6 PM, or Immediate Emergency Service.
+   - Step 9 (Confirmation & Official Code): Once all information is gathered, Sofia Lin MUST generate and state the official Order / Confirmation Code (e.g. MP-XXXX), confirm the Plan Free ($0 Diagnostic Fee) under C-36 Lic. #1156542, and thank the customer.
 
 5. PRICING POLICIES (RED LINES):
    - FORBIDDEN TO GIVE FIXED REPAIR PRICES OVER THE PHONE: Explain politely that under the California Plumbing Code (CPC), exact repair costs are determined after in-person technical evaluation.
@@ -96,13 +99,17 @@ def call_llm_hybrid(user_prompt: str, system_prompt: str = _SOFIA_SYSTEM_PROMPT,
     Motor de IA de Sofia Lin: Google Gemini (gemini-2.5-flash / gemini-2.0-flash / gemini-1.5-flash) como motor principal.
     Soporta json_mode nativo para asegurar JSON valido.
     """
-    # 1. Intentar Google Gemini (Motor Principal de Alta Velocidad)
-    gemini_key = os.getenv("GEMINI_API_KEY")
-    if gemini_key:
+    # 1. Intentar Google Gemini (Motor Principal con Respaldo de Claves)
+    gemini_keys = [
+        k for k in [
+            os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_KEY"),
+            os.getenv("GEMINI_API_KEY_BACKUP") or os.getenv("GEMINI_KEY_BACKUP")
+        ] if k and k.strip()
+    ]
+    if gemini_keys:
         try:
             from google import genai
             from google.genai import types
-            g_client = genai.Client(api_key=gemini_key)
             config_args = {
                 "system_instruction": system_prompt,
                 "max_output_tokens": max_tokens,
@@ -112,17 +119,29 @@ def call_llm_hybrid(user_prompt: str, system_prompt: str = _SOFIA_SYSTEM_PROMPT,
                 config_args["response_mime_type"] = "application/json"
             g_config = types.GenerateContentConfig(**config_args)
             
-            for g_model in ("gemini-3-flash-preview", "gemini-3.1-flash-lite-preview", "gemini-3.1-pro-preview", "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.0-flash"):
+            for idx, g_key in enumerate(gemini_keys):
                 try:
-                    g_resp = g_client.models.generate_content(
-                        model=g_model,
-                        contents=user_prompt,
-                        config=g_config
-                    )
-                    if g_resp.text:
-                        return g_resp.text.strip()
-                except Exception as model_err:
-                    logger.warning(f"Aviso Gemini {g_model}: {model_err}")
+                    g_client = genai.Client(api_key=g_key.strip())
+                    for g_model in ("gemini-3.6-flash", "gemini-3.5-flash-lite", "gemini-3-flash-preview", "gemini-3.1-flash-lite-preview", "gemini-flash-latest"):
+                        try:
+                            g_resp = g_client.models.generate_content(
+                                model=g_model,
+                                contents=user_prompt,
+                                config=g_config
+                            )
+                            if g_resp.text:
+                                text_out = g_resp.text.strip()
+                                if json_mode:
+                                    import json as _j
+                                    cleaned = text_out.replace("```json", "").replace("```", "").strip()
+                                    if "{" in cleaned and "}" in cleaned:
+                                        cleaned = cleaned[cleaned.find("{"):cleaned.rfind("}")+1]
+                                    _j.loads(cleaned)
+                                return text_out
+                        except Exception as model_err:
+                            logger.warning(f"Aviso Gemini {g_model} clave {idx + 1}: {model_err}")
+                except Exception as key_err:
+                    logger.warning(f"Aviso cliente Gemini clave {idx + 1}: {key_err}")
         except Exception as ge:
             logger.warning(f"Aviso general Gemini en call_llm_hybrid: {ge}")
 
@@ -183,17 +202,20 @@ def sofia_text_chat(text: str, user_id: str, lang: str = "en") -> str:
         for m in text_sessions[user_id]
         if m["role"] != "system"
     )
-    extract_prompt = f"""Analiza esta conversación de Morales Plumbing y extrae los datos de la cita según el manual operativo.
+    extract_prompt = f"""Analiza esta conversación de Morales Plumbing y extrae los datos completos de la cita de servicio según el protocolo operativo.
 Devuelve ÚNICAMENTE un JSON válido con esta estructura exacta:
 {{
   "name": "nombre y apellido del cliente o null",
   "phone": "teléfono de contacto o null",
-  "email": "correo electrónico o null",
+  "email": "correo electrónico del cliente o null",
   "address": "dirección completa del servicio con ciudad o null",
-  "diagnosis": "descripción del problema reportado por el cliente con sus propias palabras o null",
-  "time_window": "ventana horaria preferida o acordada (ej. 8-10 AM, 10-12 PM, 12-2 PM, 2-4 PM, 4-6 PM, Hoy ASAP) o null",
+  "owner_status": "dueño / propietario (homeowner) o arrendatario / inquilino (renter) o null",
+  "present_person": "nombre o relación de la persona adulta que estará presente en la propiedad o null",
+  "access_notes": "situaciones de acceso y seguridad (perros/mascotas, rejas, códigos de portón, etc.) o 'Sin restricciones reportadas'",
+  "diagnosis": "descripción del problema de plomería reportado por el cliente con sus propias palabras o null",
+  "time_window": "ventana horaria preferida o acordada (8-10 AM, 10-12 PM, 12-2 PM, 2-4 PM, 4-6 PM, Hoy ASAP) o null",
   "is_emergency": true si es fuga grave/emergencia activa sino false,
-  "is_complete": true SOLO si name, phone, address, diagnosis y time_window están todos definidos o si el cliente ya dio sus datos completos y disponibilidad, de lo contrario false
+  "is_complete": true SOLO si el cliente ya proporcionó o abordó: name, phone, email, address, diagnosis, owner_status, present_person, access_notes y time_window, de lo contrario false
 }}
 
 Historial de Conversación:
@@ -202,8 +224,10 @@ Historial de Conversación:
 JSON:"""
 
     try:
-        raw = call_llm_hybrid(extract_prompt, "Eres un extractor de datos JSON estricto.", max_tokens=350, json_mode=True)
+        raw = call_llm_hybrid(extract_prompt, "Eres un extractor de datos JSON estricto.", max_tokens=1500, json_mode=True)
         raw = raw.replace("```json", "").replace("```", "").strip()
+        if "{" in raw and "}" in raw:
+            raw = raw[raw.find("{"):raw.rfind("}")+1]
         appt = _json.loads(raw)
 
         if appt.get("is_complete"):
@@ -211,9 +235,21 @@ JSON:"""
             phone = appt.get("phone") or "Not provided"
             email = appt.get("email") or "Not provided"
             address = appt.get("address") or "Not provided"
+            owner_status = appt.get("owner_status") or "Propietario / Dueño"
+            present_person = appt.get("present_person") or name
+            access_notes = appt.get("access_notes") or "Sin restricciones reportadas"
             diagnosis = appt.get("diagnosis") or "On-Site Evaluation & Inspection"
             time_window = appt.get("time_window") or "To be coordinated within standard window"
             is_emergency = appt.get("is_emergency", False)
+
+            # Verificación automática de tipo de propiedad con APIs públicas
+            try:
+                from services.public_apis import detect_property_type
+                prop_info = detect_property_type(address)
+                property_type = prop_info.get("property_type", "Casa Unifamiliar (Single Family Home)")
+            except Exception as prop_err:
+                logger.warning(f"Aviso detect_property_type: {prop_err}")
+                property_type = "Casa Unifamiliar (Single Family Home)"
 
             code = save_appointment(
                 name=name,
@@ -225,7 +261,11 @@ JSON:"""
                 materials="On-site technical evaluation",
                 is_emergency=is_emergency,
                 scheduled_time=time_window,
-                source="telegram" if "tg_" in user_id else "whatsapp"
+                source="telegram" if "tg_" in user_id else "whatsapp",
+                property_type=property_type,
+                present_person=present_person,
+                access_notes=access_notes,
+                owner_status=owner_status
             )
             # Limpiar sesión para evitar doble guardado
             del text_sessions[user_id]
@@ -233,31 +273,39 @@ JSON:"""
             if lang == "es":
                 return (
                     f"[ORDEN] *MORALES PLUMBING - CONFIRMACION DE CITA DE SERVICIO*\n\n"
-                    f"[TICKET] *Codigo de Orden:* `{code}`\n"
-                    f"[CLIENTE] *Cliente:* {name}\n"
+                    f"[TICKET] *Codigo de Confirmacion:* `{code}`\n"
+                    f"[CLIENTE] *Cliente:* {name} ({owner_status})\n"
                     f"[DIRECCION] *Direccion de Servicio:* {address}\n"
+                    f"[TIPO] *Tipo de Inmueble:* {property_type}\n"
+                    f"[PRESENTE] *Persona en la Propiedad:* {present_person}\n"
+                    f"[ACCESO] *Seguridad / Accesos:* {access_notes}\n"
                     f"[TELEFONO] *Telefono:* {phone}\n"
-                    f"[EMAIL] *Correo:* {email}\n"
+                    f"[EMAIL] *Correo Electronico:* {email}\n"
                     f"[LICENCIA] *Problema Reportado:* {diagnosis}\n"
                     f"[HORARIO] *Ventana Horaria Asignada:* {time_window}\n"
                     f"[PAGO] *Membresia Aplicada:* Plan Free ($0.00/mes - $0 Diagnostic Fee)\n\n"
-                    f"[INFO] *Proximos pasos:* Uno de nuestros plomeros certificados acudira con su unidad taller en la ventana programada. "
-                    f"Recibira una notificacion cuando el tecnico este en camino (On-My-Way) con seguimiento en tiempo real.\n\n"
+                    f"[INFO] *Proximos pasos:* Su cita ha quedado formalmente confirmada bajo el codigo `{code}`. "
+                    f"Uno de nuestros plomeros certificados (Lic. C-36 #1156542) acudira en su unidad taller durante la ventana acordada. "
+                    f"Recibira una notificacion On-My-Way con rastreo en tiempo real.\n\n"
                     f"[TELEFONO] *Central:* (669) 213-4422 | *Despacho Directo:* (669) 234-2444\n"
                     f"[WEB] *Web:* www.morales-plumbing.com"
                 )
             else:
                 return (
                     f"[ORDEN] *MORALES PLUMBING - SERVICE APPOINTMENT CONFIRMATION*\n\n"
-                    f"[TICKET] *Order Code:* `{code}`\n"
-                    f"[CLIENTE] *Customer:* {name}\n"
+                    f"[TICKET] *Confirmation Code:* `{code}`\n"
+                    f"[CLIENTE] *Customer:* {name} ({owner_status})\n"
                     f"[DIRECCION] *Service Address:* {address}\n"
+                    f"[TIPO] *Property Type:* {property_type}\n"
+                    f"[PRESENTE] *Present at Property:* {present_person}\n"
+                    f"[ACCESO] *Safety / Access Notes:* {access_notes}\n"
                     f"[TELEFONO] *Phone:* {phone}\n"
                     f"[EMAIL] *Email:* {email}\n"
                     f"[LICENCIA] *Reported Issue:* {diagnosis}\n"
                     f"[HORARIO] *Assigned Time Window:* {time_window}\n"
                     f"[PAGO] *Applied Membership:* Plan Free ($0.00/mo - $0 Diagnostic Fee)\n\n"
-                    f"[INFO] *Next steps:* A certified technician with a mobile workshop unit will arrive within the scheduled window. "
+                    f"[INFO] *Next steps:* Your appointment is officially confirmed under code `{code}`. "
+                    f"A certified technician (Lic. C-36 #1156542) with a mobile workshop unit will arrive within the scheduled window. "
                     f"You will receive an On-My-Way tracking notification once the technician is en route.\n\n"
                     f"[TELEFONO] *Office:* (669) 213-4422 | *Direct Dispatch:* (669) 234-2444\n"
                     f"[WEB] *Web:* www.morales-plumbing.com"
@@ -320,15 +368,61 @@ def get_tts_url(text: str, lang: str = "es") -> str:
     text_encoded = quote(text[:200])
     return f"https://translate.google.com/translate_tts?ie=UTF-8&q={text_encoded}&tl={lang}&client=tw-ob"
 
+async def get_elevenlabs_tts(text: str, lang: str = "en") -> bytes:
+    """
+    Genera audio con ElevenLabs API como motor de voz primario de Sofia Lin.
+    Soporta clave primaria y clave de respaldo en caso de agotamiento de cuota o error.
+    """
+    primary_key = os.getenv("ELEVENLABS_API_KEY")
+    backup_key = os.getenv("ELEVENLABS_API_KEY_BACKUP")
+    voice_id = os.getenv("ELEVENLABS_VOICE_ID", "EXAVITQu4vr4xnSDxMaL")
+    model_id = os.getenv("ELEVENLABS_MODEL_ID", "eleven_multilingual_v2")
+
+    keys_to_try = []
+    if primary_key and primary_key.strip():
+        keys_to_try.append(("primaria", primary_key.strip()))
+    if backup_key and backup_key.strip():
+        keys_to_try.append(("respaldo", backup_key.strip()))
+
+    if not keys_to_try:
+        return None
+
+    for role, key in keys_to_try:
+        try:
+            url = f"https://api.elevenlabs.io/v1/text-to-speech/{voice_id}"
+            headers = {
+                "xi-api-key": key,
+                "Content-Type": "application/json",
+                "Accept": "audio/mpeg"
+            }
+            payload = {
+                "text": text[:4096],
+                "model_id": model_id,
+                "voice_settings": {
+                    "stability": 0.5,
+                    "similarity_boost": 0.75
+                }
+            }
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                res = await client.post(url, headers=headers, json=payload)
+                if res.status_code == 200 and res.content:
+                    logger.info(f"[TTS] ElevenLabs audio generado con exito (clave {role})")
+                    return res.content
+                else:
+                    logger.warning(f"[TTS] ElevenLabs clave {role} fallo con HTTP {res.status_code}: {res.text[:120]}")
+        except Exception as e:
+            logger.error(f"[TTS] Excepcion conectando a ElevenLabs clave {role}: {e}")
+
+    return None
+
 async def get_openai_tts(text: str, lang: str = "es") -> bytes:
-    """Genera audio con OpenAI TTS HD - Voz masculina natural"""
+    """Genera audio con OpenAI TTS HD (Respaldo)"""
     try:
         import openai
         client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        # Voces masculinas: onyx (California cool), echo (elegante)
-        voice = "onyx" if lang == "en" else "echo"  # onyx=California, echo=elegante paisa
+        voice = "onyx" if lang == "en" else "echo"
         response = client.audio.speech.create(
-            model="tts-1-hd",  # HD = Alta definicion, mas natural
+            model="tts-1-hd",
             voice=voice,
             input=text[:4096],
             speed=1.0
@@ -337,6 +431,27 @@ async def get_openai_tts(text: str, lang: str = "es") -> bytes:
     except Exception as e:
         logger.error(f"OpenAI TTS error: {e}")
         return None
+
+async def get_tts_audio(text: str, lang: str = "en") -> bytes:
+    """
+    Motor Maestro de Sintesis de Voz Sofia Lin:
+    1. Primario: ElevenLabs API (clave primaria)
+    2. Respaldo Nivel 1: ElevenLabs API (clave de respaldo si configurada)
+    3. Respaldo Nivel 2: OpenAI TTS HD (tts-1-hd)
+    """
+    # 1 y 2: Intentar ElevenLabs
+    audio = await get_elevenlabs_tts(text, lang)
+    if audio:
+        return audio
+
+    # 3: Respaldo OpenAI TTS
+    logger.warning("[TTS] ElevenLabs no disponible o cuota agotada. Activando respaldo OpenAI TTS HD...")
+    audio = await get_openai_tts(text, lang)
+    if audio:
+        return audio
+
+    logger.error("[TTS] Todos los motores TTS binarios fallaron.")
+    return None
 
 @app.get("/")
 def health():
@@ -352,7 +467,7 @@ async def get_logo():
     from fastapi.responses import FileResponse
     return FileResponse("logo_portada.png")
 
-# ============ TTS API FOR WEB ============
+# ============ TTS API FOR WEB & TELEPHONY ============
 @app.post("/api/tts")
 async def api_tts(request: Request):
     """TTS endpoint for web chatbot - works on all devices"""
@@ -360,26 +475,45 @@ async def api_tts(request: Request):
     try:
         data = await request.json()
         text = data.get("text", "")
-        lang = data.get("lang", "es")
+        lang = data.get("lang", "en")
         
         if not text:
             return Response(content=b"", media_type="audio/mpeg")
         
-        # Use OpenAI TTS
-        audio_bytes = await get_openai_tts(text)
+        # Usar motor primario ElevenLabs con fallback escalonado
+        audio_bytes = await get_tts_audio(text, lang)
         if audio_bytes:
-            # Add proper headers to avoid Range request errors
             headers = {
                 "Content-Length": str(len(audio_bytes)),
-                "Accept-Ranges": "none",  # Disable range requests
+                "Accept-Ranges": "none",
                 "Cache-Control": "no-cache"
             }
             return Response(content=audio_bytes, media_type="audio/mpeg", headers=headers)
         else:
-            # Fallback: return empty audio
             return Response(content=b"", media_type="audio/mpeg")
     except Exception as e:
         logger.error(f"TTS API error: {e}")
+        return Response(content=b"", media_type="audio/mpeg")
+
+@app.get("/voice/tts")
+@app.get("/api/tts")
+async def api_tts_get(text: str = "", lang: str = "en"):
+    """GET endpoint para reproduccion directa de audio sintetizado"""
+    from fastapi.responses import Response
+    if not text:
+        return Response(content=b"", media_type="audio/mpeg")
+    try:
+        audio_bytes = await get_tts_audio(text, lang)
+        if audio_bytes:
+            headers = {
+                "Content-Length": str(len(audio_bytes)),
+                "Accept-Ranges": "none",
+                "Cache-Control": "no-cache"
+            }
+            return Response(content=audio_bytes, media_type="audio/mpeg", headers=headers)
+        return Response(content=b"", media_type="audio/mpeg")
+    except Exception as e:
+        logger.error(f"TTS GET error: {e}")
         return Response(content=b"", media_type="audio/mpeg")
 
 # ============ WEB CHAT API ============
@@ -501,11 +635,11 @@ _Type any message to chat with Sofia Lin_"""
             await send_telegram_message(chat_id, menu)
             return {"ok": True}
         
-        # ============ VOZ TTS (OpenAI Natural) ============
+        # ============ VOZ TTS (Sofia Lin Voice Engine: ElevenLabs Primario) ============
         if text_lower.startswith("/say ") or text_lower.startswith("/di "):
             phrase = re.sub(r'^/(say|di)\s+', '', text, flags=re.IGNORECASE).strip()
             if phrase:
-                audio_bytes = await get_openai_tts(phrase, lang)
+                audio_bytes = await get_tts_audio(phrase, lang)
                 if audio_bytes:
                     await send_telegram_voice_bytes(chat_id, audio_bytes)
                 else:
@@ -523,7 +657,7 @@ _Type any message to chat with Sofia Lin_"""
                 await send_telegram_message(chat_id, "[BOT][VOICE] Processing with natural voice...")
                 response = sofia_text_chat(query, f"tg_{user_id}", lang)
                 await send_telegram_message(chat_id, response)
-                audio_bytes = await get_openai_tts(response, lang)
+                audio_bytes = await get_tts_audio(response, lang)
                 if audio_bytes:
                     await send_telegram_voice_bytes(chat_id, audio_bytes)
                 else:
@@ -871,6 +1005,8 @@ Devuelve ÚNICAMENTE un JSON con:
 }}"""
         raw = call_llm_hybrid(prompt, "Eres un analista técnico de plomería y redactor de JSON estricto.", max_tokens=1500, json_mode=True)
         raw = raw.replace("```json", "").replace("```", "").strip()
+        if "{" in raw and "}" in raw:
+            raw = raw[raw.find("{"):raw.rfind("}")+1]
         return _json.loads(raw)
     except Exception as e:
         logger.error(f"Error generando análisis técnico: {e}")
@@ -944,7 +1080,7 @@ def create_google_calendar_event(name: str, phone: str, address: str, diagnosis:
         logger.error(f"Error insertando evento en Google Calendar: {e}")
         return None
 
-def save_appointment(name: str, phone: str, email: str, address: str, status: str, diagnosis: str, materials: str, is_emergency: bool, scheduled_time: str, source: str = "phone") -> str:
+def save_appointment(name: str, phone: str, email: str, address: str, status: str, diagnosis: str, materials: str, is_emergency: bool, scheduled_time: str, source: str = "phone", property_type: str = "Casa Unifamiliar", present_person: str = "Titular", access_notes: str = "Sin restricciones reportadas", owner_status: str = "Dueño") -> str:
     """Guarda cita en base de datos y envía reporte dual al técnico/owner (versión cliente + análisis técnico Sofia AI)"""
     import json
     import random
@@ -981,6 +1117,10 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
             "email": email,
             "address": address,
             "status": status,
+            "owner_status": owner_status,
+            "property_type": property_type,
+            "present_person": present_person,
+            "access_notes": access_notes,
             "customer_issue": diagnosis,
             "technical_diagnosis": tech_diag,
             "materials": tech_mat,
@@ -1007,7 +1147,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                     "customer_name": name,
                     "customer_phone": phone,
                     "service_address": address,
-                    "issue_description": f"Cliente: {diagnosis} | Técnico: {tech_diag}",
+                    "issue_description": f"Cliente: {diagnosis} | Inmueble: {property_type} ({owner_status}) | Presente: {present_person} | Accesos/Seguridad: {access_notes}",
                     "status": "pending",
                     "channel": source
                 }
@@ -1046,10 +1186,13 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                     f"[ALERTA] *MORALES PLUMBING — FICHA TÉCNICA DE DESPACHO* [ALERTA]\n\n"
                     f"[TICKET] *Ticket ID:* `{code}`\n"
                     f"[PRIORIDAD] *Prioridad:* {tipo_t}\n"
-                    f"[CLIENTE] *Cliente:* {name}\n"
+                    f"[CLIENTE] *Cliente:* {name} ({owner_status})\n"
                     f"[TELEFONO] *Teléfono:* `{phone}`\n"
                     f"[EMAIL] *Email:* `{email}`\n"
                     f"[DIRECCION] *Dirección de Servicio:* {address}\n"
+                    f"[TIPO] *Tipo de Inmueble:* {property_type}\n"
+                    f"[PRESENTE] *Persona en Sitio:* {present_person}\n"
+                    f"[ACCESO] *Seguridad / Accesos:* {access_notes}\n"
                     f"[HORARIO] *Ventana Horaria:* {scheduled_time}\n"
                     f"[PAGO] *Membresía:* Plan Free ($0.00 Diagnostic Fee)\n\n"
                     f"[REPORTE] *REPORTE DEL CLIENTE (Palabras Cotidianas):*\n"
@@ -1081,6 +1224,7 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
                 except Exception as c_err:
                     # Intento 2: urllib con contexto SSL permisivo
                     try:
+                        import urllib.request
                         ctx = ssl.create_default_context()
                         ctx.check_hostname = False
                         ctx.verify_mode = ssl.CERT_NONE
@@ -1641,14 +1785,16 @@ async def twilio_ws(websocket: WebSocket):
                             "parameters": {
                                 "type": "object",
                                 "properties": {
-                                    "nombre": {"type": "string", "description": "Nombre del cliente"},
+                                    "nombre": {"type": "string", "description": "Nombre completo del cliente"},
                                     "telefono": {"type": "string", "description": "Teléfono de contacto"},
-                                    "email": {"type": "string", "description": "Correo electrónico (pedir que lo deletree si no se entiende)"},
-                                    "direccion": {"type": "string", "description": "Dirección del servicio"},
-                                    "propietario": {"type": "string", "description": "Estatus: dueño de la propiedad (owner) o arrendatario (renter)"},
+                                    "email": {"type": "string", "description": "Correo electrónico del cliente para envío de confirmación formal"},
+                                    "direccion": {"type": "string", "description": "Dirección completa del servicio (aclarando casa o unidad de condominio)"},
+                                    "propietario": {"type": "string", "description": "Estatus de propiedad: dueño (homeowner) o arrendatario/inquilino (renter)"},
+                                    "quien_recibe": {"type": "string", "description": "Persona adulta mayor de 18 años que estará presente en la propiedad"},
+                                    "seguridad_acceso": {"type": "string", "description": "Notas de seguridad y acceso: perros, mascotas en patio, portón, código de reja, etc."},
                                     "problema": {"type": "string", "description": "Descripción del problema reportado por el cliente"}
                                 },
-                                "required": ["nombre", "telefono", "direccion", "problema"]
+                                "required": ["nombre", "telefono", "email", "direccion", "propietario", "quien_recibe", "problema"]
                             }
                         },
                         {
@@ -1779,17 +1925,29 @@ async def twilio_ws(websocket: WebSocket):
                             
                             if func_name == "agendar_cita":
                                 is_booking_warranted = True
-                                save_appointment(
+                                addr = arguments.get("direccion", "Sin Dirección")
+                                try:
+                                    from services.public_apis import detect_property_type
+                                    prop_info = detect_property_type(addr)
+                                    prop_type = prop_info.get("property_type", "Casa Unifamiliar")
+                                except:
+                                    prop_type = "Casa Unifamiliar"
+
+                                code = save_appointment(
                                     name=arguments.get("nombre", "Cliente Desconocido"),
                                     phone=arguments.get("telefono", "Sin Teléfono"),
                                     email=arguments.get("email", "No provisto"),
-                                    address=arguments.get("direccion", "Sin Dirección"),
-                                    status=arguments.get("propietario", "Pendiente"),
+                                    address=addr,
+                                    status="Pending",
                                     diagnosis=arguments.get("problema", "Inspección General"),
                                     materials="Por evaluar",
                                     is_emergency=False,
-                                    scheduled_time="Por coordinar",
-                                    source="phone_openai_realtime"
+                                    scheduled_time="Por coordinar en ventana",
+                                    source="phone_openai_realtime",
+                                    property_type=prop_type,
+                                    present_person=arguments.get("quien_recibe", arguments.get("nombre", "Titular")),
+                                    access_notes=arguments.get("seguridad_acceso", "Sin restricciones reportadas"),
+                                    owner_status=arguments.get("propietario", "Dueño")
                                 )
                                 
                                 tool_output = {
@@ -1797,7 +1955,11 @@ async def twilio_ws(websocket: WebSocket):
                                     "item": {
                                         "type": "function_call_output",
                                         "call_id": call_id,
-                                        "output": json.dumps({"status": "success", "message": "Cita registrada en el sistema de Morales Plumbing."})
+                                        "output": json.dumps({
+                                            "status": "success",
+                                            "codigo_confirmacion": code,
+                                            "message": f"Cita registrada exitosamente. Código oficial de confirmación: {code}. Comunícale de forma obligatoria este código al cliente."
+                                        })
                                     }
                                 }
                                 tool_response = {

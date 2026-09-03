@@ -110,6 +110,60 @@ def validate_address_census(address: str) -> Dict[str, Any]:
         "message": "Dirección aceptada en modo de tolerancia estándar."
     }
 
+def detect_property_type(address: str) -> Dict[str, Any]:
+    """
+    Determina si una propiedad es Casa Unifamiliar (Single Family Home),
+    Condominio/Apartamento (Multi-family/Condo) o Comercial, usando patrones
+    y verificación con APIs públicas (OpenStreetMap / Census).
+    """
+    if not address or len(address.strip()) < 3:
+        return {"property_type": "Residencial General", "is_condo": False, "confidence": "low"}
+
+    addr_lower = address.lower()
+    condo_indicators = [
+        r'\bapt\b', r'\bunit\b', r'\bste\b', r'\bsuite\b', r'#\s*\d+',
+        r'\bcondo\b', r'\bcondominium\b', r'\bapartment\b', r'\bapartamento\b',
+        r'\bbldg\b', r'\bbuilding\b', r'\bfl\b', r'\bfloor\b'
+    ]
+    for pattern in condo_indicators:
+        if re.search(pattern, addr_lower):
+            return {
+                "property_type": "Condo / Apartamento",
+                "is_condo": True,
+                "is_single_family": False,
+                "confidence": "high",
+                "reason": f"Indicador de unidad detectado: {pattern}"
+            }
+
+    try:
+        encoded = requests.utils.quote(address)
+        url = f"https://nominatim.openstreetmap.org/search?q={encoded}&format=json&addressdetails=1&limit=1"
+        headers = {"User-Agent": "MoralesPlumbingDiagnosticBot/2.0 (moralesplumbing026@gmail.com)"}
+        resp = requests.get(url, headers=headers, timeout=3)
+        if resp.status_code == 200:
+            results = resp.json()
+            if results:
+                first = results[0]
+                osm_type = first.get("type", "").lower()
+                osm_class = first.get("class", "").lower()
+                addresstype = first.get("addresstype", "").lower()
+                
+                if any(k in osm_type or k in addresstype for k in ("apartments", "condominium", "dormitory")):
+                    return {"property_type": "Condo / Apartamento", "is_condo": True, "is_single_family": False, "confidence": "high"}
+                elif any(k in osm_type or k in addresstype for k in ("house", "residential", "detached", "home")):
+                    return {"property_type": "Casa Unifamiliar (Single Family Home)", "is_condo": False, "is_single_family": True, "confidence": "high"}
+                elif osm_class in ("commercial", "retail", "office", "industrial"):
+                    return {"property_type": "Comercial / Empresa", "is_condo": False, "is_single_family": False, "confidence": "medium"}
+    except Exception as e:
+        logger.warning(f"Aviso detect_property_type API: {e}")
+
+    return {
+        "property_type": "Casa Unifamiliar (Single Family Home)",
+        "is_condo": False,
+        "is_single_family": True,
+        "confidence": "standard"
+    }
+
 # ==============================================================================
 # 3. AUTOCOMPLETADO Y VALIDACIÓN DE CÓDIGOS POSTALES (Zippopotam.us)
 # ==============================================================================

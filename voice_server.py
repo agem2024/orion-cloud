@@ -39,10 +39,16 @@ SYSTEM_MESSAGE_EN = """You are Sofia Lin, the Master AI Dispatcher for Morales P
 3. EMERGENCY PROTOCOL (CRITICAL):
 - If they mention smelling gas or aggressive flooding, tell them IMMEDIATELY to shut off main valves and evacuate if necessary, while you dispatch a technician.
 
-4. DISPATCH PROTOCOL:
-- Ask for: Name, Address, Phone number, and Preferred time.
-- Confirm a certified technician (Lic. C-36 #1156542) will be dispatched.
-- ONCE YOU HAVE ALL 4 DETAILS (Name, Address, Phone, Issue/Time), YOU MUST USE THE `agendar_cita` TOOL to send the alert to the system. Then politely say goodbye.
+4. DISPATCH PROTOCOL (MANDATORY INTAKE):
+- Ask ONE question at a time:
+  1. Plumbing problem / reason for call.
+  2. Exact address with city (clarify if Single-Family Home or Condo/Apartment unit).
+  3. Ownership status (Homeowner vs Renter/Tenant).
+  4. Who will be present at the property to receive the certified technician (must be an adult 18+).
+  5. Access & safety instructions (dogs or pets in yard/home, locked gates, entry codes, parking).
+  6. Full contact name, callback phone number, and EMAIL address (mandatory for written confirmation).
+  7. Preferred 2-hour service time window or Emergency ASAP.
+- ONCE YOU HAVE ALL DETAILS, YOU MUST EXECUTE `agendar_cita` and STATE THE OFFICIAL CONFIRMATION CODE (MP-XXXX) to the customer before polite goodbye.
 
 5. MEMBERSHIPS (IF ASKED ABOUT DISCOUNTS):
 - FREE ($0/mo): 3 appointments with no diagnostic fee.
@@ -74,10 +80,16 @@ SYSTEM_MESSAGE_ES = """Eres Sofia Lin, la Master Dispatcher de IA por teléfono 
 3. PROTOCOLO DE EMERGENCIAS (CRITICO):
 - Si mencionan olor a gas o agua inundando agresivamente, indícales INMEDIATAMENTE que cierren las válvulas principales y salgan del lugar, mientras despachas al técnico.
 
-4. PROTOCOLO DE AGENDA (DESPACHO):
-- Pregunta: Nombre, Dirección, Teléfono, y Horario de preferencia.
-- Confirma que se enviará a un técnico certificado (Lic. C-36 #1156542).
-- UNA VEZ QUE TENGAS LOS 4 DATOS (Nombre, Dirección, Teléfono, Problema/Horario), DEBES USAR LA HERRAMIENTA `agendar_cita` para enviar la alerta al sistema. Luego despídete cortésmente.
+4. PROTOCOLO DE AGENDA (DESPACHO OBLIGATORIO):
+- Haz UNA sola pregunta a la vez para no abrumar al cliente:
+  1. Problema o motivo de la visita.
+  2. Dirección exacta con ciudad (clarificar si es casa o departamento/condominio).
+  3. Estatus de propiedad (¿es usted el dueño o arrendatario/inquilino?).
+  4. Quién estará presente en la propiedad (adulto mayor de 18 años).
+  5. Notas de acceso y seguridad (perros o mascotas en patio/casa, portón cerrado, código de acceso).
+  6. Nombre completo, teléfono y CORREO ELECTRÓNICO (indispensable para enviar la confirmación formal).
+  7. Ventana horaria de preferencia (ventanas de 2 horas o emergencia).
+- UNA VEZ OBTENIDOS LOS DATOS, EJECUTA LA HERRAMIENTA `agendar_cita` Y COMUNICA DE FORMA OBLIGATORIA EL CÓDIGO DE CONFIRMACIÓN OFICIAL (MP-XXXX) AL CLIENTE antes de despedirte cortésmente.
 
 5. MEMBRESIAS (SI PREGUNTAN POR DESCUENTOS):
 - FREE ($0/mes): 3 citas sin tarifa de inspección inicial.
@@ -109,7 +121,18 @@ def enviar_alerta_telegram(datos):
     if not TELEGRAM_BOT_TOKEN or not TELEGRAM_OWNER_ID:
         print("[AVISO] Telegram token missing. Alerta no enviada por TG.")
         return
-    texto = f"[ALERTA] *NUEVA CITA AGENDADA (Llamada Telefonica AI)*\n\n[CLIENTE] *Nombre:* {datos.get('nombre')}\n[TEL] *Telefono:* {datos.get('telefono')}\n[DIRECCION] *Direccion:* {datos.get('direccion')}\n[DETALLE] *Problema/Horario:* {datos.get('problema')}"
+    codigo = datos.get("codigo", "MP-REG")
+    texto = (
+        f"[ALERTA] *NUEVA CITA AGENDADA (Llamada Telefonica Sofia Lin)*\n\n"
+        f"[TICKET] *Codigo:* `{codigo}`\n"
+        f"[CLIENTE] *Nombre:* {datos.get('nombre')} ({datos.get('propietario', 'No especificado')})\n"
+        f"[TEL] *Telefono:* {datos.get('telefono')}\n"
+        f"[EMAIL] *Correo:* {datos.get('email', 'No provisto')}\n"
+        f"[DIRECCION] *Direccion:* {datos.get('direccion')}\n"
+        f"[PRESENTE] *Persona en Sitio:* {datos.get('quien_recibe', 'Titular')}\n"
+        f"[ACCESO] *Seguridad / Accesos:* {datos.get('seguridad_acceso', 'Sin restricciones reportadas')}\n"
+        f"[DETALLE] *Problema/Horario:* {datos.get('problema')}"
+    )
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {"chat_id": TELEGRAM_OWNER_ID, "text": texto, "parse_mode": "Markdown"}
     try:
@@ -129,9 +152,20 @@ def enviar_alerta_email(datos):
         msg = MIMEMultipart()
         msg['From'] = EMAIL_USER
         msg['To'] = "agem2013@gmail.com"
-        msg['Subject'] = "[ALERTA] NUEVA CITA AGENDADA (Morales Plumbing)"
+        codigo = datos.get("codigo", "MP-REG")
+        msg['Subject'] = f"[ALERTA] NUEVA CITA AGENDADA ({codigo}) - Morales Plumbing"
         
-        cuerpo = f"NUEVA CITA AGENDADA POR EL BOT TELEFONICO SOFIA LIN\n\nNombre: {datos.get('nombre')}\nTelefono: {datos.get('telefono')}\nDireccion: {datos.get('direccion')}\nProblema/Horario: {datos.get('problema')}\n"
+        cuerpo = (
+            f"NUEVA CITA AGENDADA POR EL BOT TELEFONICO SOFIA LIN\n\n"
+            f"Codigo de Confirmacion: {codigo}\n"
+            f"Nombre: {datos.get('nombre')} ({datos.get('propietario', 'No especificado')})\n"
+            f"Telefono: {datos.get('telefono')}\n"
+            f"Email: {datos.get('email', 'No provisto')}\n"
+            f"Direccion: {datos.get('direccion')}\n"
+            f"Persona en Propiedad: {datos.get('quien_recibe', 'Titular')}\n"
+            f"Seguridad / Accesos: {datos.get('seguridad_acceso', 'Sin restricciones reportadas')}\n"
+            f"Problema/Horario: {datos.get('problema')}\n"
+        )
         msg.attach(MIMEText(cuerpo, 'plain'))
         
         server = smtplib.SMTP('smtp.gmail.com', 587)
@@ -164,16 +198,20 @@ def ask_openai(user_input: str, session_id: str, lang: str = "es") -> str:
                 "type": "function",
                 "function": {
                     "name": "agendar_cita",
-                    "description": "Ejecuta esta función una vez que hayas recopilado nombre, teléfono, dirección y el problema de plomería del cliente para enviar la alerta al dueño.",
+                    "description": "Ejecuta esta función una vez que hayas recopilado nombre, teléfono, email, dirección, estatus de propiedad, persona presente, notas de seguridad y problema de plomería.",
                     "parameters": {
                         "type": "object",
                         "properties": {
-                            "nombre": {"type": "string", "description": "Nombre del cliente"},
-                            "telefono": {"type": "string", "description": "Número de teléfono del cliente"},
-                            "direccion": {"type": "string", "description": "Dirección completa o ciudad de la visita"},
+                            "nombre": {"type": "string", "description": "Nombre completo del cliente"},
+                            "telefono": {"type": "string", "description": "Número de teléfono de contacto"},
+                            "email": {"type": "string", "description": "Correo electrónico del cliente"},
+                            "direccion": {"type": "string", "description": "Dirección completa del servicio (aclarando casa o unidad de condominio)"},
+                            "propietario": {"type": "string", "description": "Estatus: dueño de la propiedad (homeowner) o arrendatario/inquilino (renter)"},
+                            "quien_recibe": {"type": "string", "description": "Persona adulta mayor de 18 años que estará presente en la propiedad"},
+                            "seguridad_acceso": {"type": "string", "description": "Notas de seguridad o acceso: perros, mascotas en patio, portón cerrado, código de reja, etc."},
                             "problema": {"type": "string", "description": "Descripción del problema de plomería y horario de preferencia"}
                         },
-                        "required": ["nombre", "telefono", "direccion", "problema"]
+                        "required": ["nombre", "telefono", "email", "direccion", "propietario", "quien_recibe", "problema"]
                     }
                 }
             }
@@ -200,7 +238,10 @@ def ask_openai(user_input: str, session_id: str, lang: str = "es") -> str:
                 for tool_call in message["tool_calls"]:
                     if tool_call["function"]["name"] == "agendar_cita":
                         args = json.loads(tool_call["function"]["arguments"])
-                        print(f"[CITA] Ejecutando alerta de cita: {args}")
+                        import random
+                        codigo = f"MP-{random.randint(1000, 9999)}"
+                        args["codigo"] = codigo
+                        print(f"[CITA] Ejecutando alerta de cita {codigo}: {args}")
                         enviar_alerta_telegram(args)
                         enviar_alerta_email(args)
                         
@@ -209,7 +250,11 @@ def ask_openai(user_input: str, session_id: str, lang: str = "es") -> str:
                             "role": "tool",
                             "tool_call_id": tool_call["id"],
                             "name": "agendar_cita",
-                            "content": '{"status": "success", "message": "Alerta enviada correctamente"}'
+                            "content": json.dumps({
+                                "status": "success",
+                                "codigo_confirmacion": codigo,
+                                "message": f"Cita registrada correctamente. El código oficial de confirmación es {codigo}. Comunícaselo de forma obligatoria al cliente antes de despedirte."
+                            })
                         })
                         
                         # Get final response from AI

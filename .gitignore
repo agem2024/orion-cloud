@@ -1,5 +1,6 @@
-﻿# Security & Credentials
+# Security & Credentials
 .env
+.env*
 *.env
 serviceAccountKey.json
 credentials.json

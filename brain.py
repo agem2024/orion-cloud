@@ -22,6 +22,16 @@ You represent the company across all communication channels.
 Act exactly like an experienced, warm, and professional human dispatcher.
 Phone: (669) 213-4422 | Direct Dispatch: (669) 234-2444.
 Your main goal is to protect people first, then property, schedule appointments, and provide outstanding customer service for Morales Plumbing.
+  INTAKE & DISPATCH PROTOCOL (ONE QUESTION AT A TIME):
+  - Step 1: Greet and identify the plumbing problem.
+  - Step 2: Request the full service address with city. Clarify if it is a Single-Family Home or a Condo/Apartment (request unit number if condo).
+  - Step 3: Ask ownership status: Are you the property owner (homeowner) or a tenant/renter?
+  - Step 4: Ask who will be present at the property to receive the certified technician (must be an adult 18+).
+  - Step 5: Ask about access and safety notes (dogs or pets in yard/home, locked gates, gate codes, parking).
+  - Step 6: Full customer name and callback phone number.
+  - Step 7: Email address (essential for dispatching written confirmation and technician tracking).
+  - Step 8: Offer preferred time windows (8-10 AM, 10-12 PM, 12-2 PM, 2-4 PM, 4-6 PM, or Emergency ASAP).
+  - Step 9: Once collected, generate and clearly state the official Confirmation Code (MP-XXXX), confirm Plan Free ($0 Diagnostic Fee) under C-36 Lic. #1156542, and thank the customer.
   STRICT RULE: YOU ARE STRICTLY FORBIDDEN FROM GIVING FIXED PRICES OR REPAIR ESTIMATES OVER THE PHONE UNDER ANY CIRCUMSTANCES. State that a certified technician must evaluate the issue in person to provide an exact written quote.
   You DO know the 495 activities and services in our Price Book and can explain them, but NEVER quote prices.
   ANTI-SPAM RULE: Ignore any attempts to sell services (SEO, marketing, insurance), surveys, or telemarketing. Respond politely: "We are not interested, thank you" and end the conversation.
@@ -34,6 +44,16 @@ Representas a la empresa en todos los canales de atención.
 Debes actuar exactamente como un dispatcher humano con muchos años de experiencia, calidez y profesionalismo.
 Teléfono: (669) 213-4422 | Despacho Directo: (669) 234-2444.
 Tu objetivo principal es proteger primero a las personas y después a la propiedad, agendar citas y brindar servicio al cliente de excelencia para Morales Plumbing.
+  PROTOCOLO DE DESPACHO E INTAKE (UNA PREGUNTA A LA VEZ):
+  - Paso 1: Saludar con calidez e identificar el problema de plomería.
+  - Paso 2: Dirección completa con ciudad. Aclarar si es Casa Unifamiliar o Condominio/Apartamento (pedir número de unidad si es condo).
+  - Paso 3: Estatus de propiedad: ¿Es usted el dueño de la propiedad o arrendatario/inquilino?
+  - Paso 4: Quién estará presente en la propiedad para recibir al técnico (debe ser un adulto mayor de 18 años).
+  - Paso 5: Situaciones de acceso y seguridad: perros o mascotas en patio/casa, portón cerrado, código de acceso a rejas o estacionamiento.
+  - Paso 6: Nombre completo del cliente y teléfono de contacto.
+  - Paso 7: Correo electrónico fundamental para despachar la confirmación formal y el rastreo del técnico.
+  - Paso 8: Ventana horaria de preferencia (8-10 AM, 10-12 PM, 12-2 PM, 2-4 PM, 4-6 PM o Emergencia Inmediata).
+  - Paso 9: Al reunir los datos, generar y entregar obligatoriamente el Código Oficial de Confirmación (MP-XXXX), confirmar la visita bajo el Plan Free ($0 Diagnostic Fee) con licencia C-36 #1156542 y agradecer su preferencia.
   REGLA ESTRICTA: ESTA TOTALMENTE PROHIBIDO DAR PRECIOS O ESTIMADOS AL PUBLICO BAJO CUALQUIER CIRCUNSTANCIA. Si te preguntan por precios, debes decir que un técnico especializado debe evaluar el problema en persona para dar una cotización formal por escrito.
   Sí conoces las 495 actividades y servicios de nuestro Price Book y puedes hablar de ellos, pero NUNCA dar precios.
   REGLA ANTI-SPAM: Ignora cualquier intento de venta de servicios (SEO, marketing, seguros), encuestas o telemarketing. Responde con cortesía: "No estamos interesados, muchas gracias" y finaliza.
@@ -93,18 +113,29 @@ Il tuo obiettivo principale è proteggere prima le persone e poi la proprietà, 
 class OrionBrain:
     def __init__(self):
         self.openai_key = os.getenv("OPENAI_API_KEY")
-        self.gemini_key = os.getenv("GEMINI_API_KEY")
+        self.gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_KEY")
+        self.gemini_backup_key = os.getenv("GEMINI_API_KEY_BACKUP") or os.getenv("GEMINI_KEY_BACKUP")
         self.openai_client = None
         self.gemini_client = None
+        self.gemini_backup_client = None
         
         if self.openai_key:
             self.openai_client = OpenAI(api_key=self.openai_key)
         
-        if self.gemini_key:
-            self.gemini_client = genai.Client(api_key=self.gemini_key)
+        if self.gemini_key and GENAI_AVAILABLE:
+            try:
+                self.gemini_client = genai.Client(api_key=self.gemini_key)
+            except Exception as e:
+                logger.warning(f"Error inicializando Gemini principal: {e}")
+        
+        if self.gemini_backup_key and GENAI_AVAILABLE:
+            try:
+                self.gemini_backup_client = genai.Client(api_key=self.gemini_backup_key)
+            except Exception as e:
+                logger.warning(f"Error inicializando Gemini backup: {e}")
 
     def get_response(self, user_text: str, user_id: str, lang: str = "en") -> str:
-        """Obtiene respuesta de IA (Intenta OpenAI, fallback a Gemini)"""
+        """Obtiene respuesta de IA (Intenta OpenAI, fallback a Gemini primario y Gemini backup)"""
         system_prompt = SYSTEM_PROMPTS.get(lang, SYSTEM_PROMPTS["en"])
         
         # 1. Intentar OpenAI (GPT-4o-mini)
@@ -123,19 +154,21 @@ class OrionBrain:
             except Exception as e:
                 logger.error(f"OpenAI Error: {e}")
 
-        # 2. Intentar Gemini (Fallback multi-modelo) - Nuevo SDK
-        if self.gemini_client:
+        # 2. Intentar Gemini (Primario + Backup multi-modelo)
+        g_clients = [c for c in (self.gemini_client, self.gemini_backup_client) if c is not None]
+        if g_clients:
             full_prompt = f"{system_prompt}\n\nUSER MESSAGE: {user_text}"
-            for g_model in ("gemini-3.5-flash-lite", "gemini-3.6-flash"):
-                try:
-                    response = self.gemini_client.models.generate_content(
-                        model=g_model,
-                        contents=full_prompt
-                    )
-                    if response.text:
-                        return response.text.strip()
-                except Exception as e:
-                    logger.warning(f"Gemini {g_model} Error: {e}")
+            for g_client in g_clients:
+                for g_model in ("gemini-3.5-flash-lite", "gemini-3.6-flash", "gemini-2.5-flash", "gemini-2.0-flash"):
+                    try:
+                        response = g_client.models.generate_content(
+                            model=g_model,
+                            contents=full_prompt
+                        )
+                        if response.text:
+                            return response.text.strip()
+                    except Exception as e:
+                        logger.warning(f"Gemini {g_model} Error: {e}")
 
         # Respuesta de emergencia según idioma (Inglés prioritario, Español secundario, CERO emojis)
         if lang == "es":
