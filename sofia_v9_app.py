@@ -1,6 +1,6 @@
 """
 Sofia Lin V9.1 - Core Brain Implementation
-Integrates Policy Engine, Data Layer, LangGraph FSM, and real LLM (OpenAI/Gemini).
+Integrates Policy Engine, Data Layer, LangGraph FSM, and Google Gemini LLM.
 """
 import os
 import json
@@ -22,8 +22,8 @@ class SofiaLinV9Engine:
     def __init__(self):
         self.config = SystemConfig()
         self.policy_engine = PolicyEngine()
-        self.openai_key = os.getenv("OPENAI_API_KEY")
-        logger.info(f"Sofia Lin V9.1 Engine Initialized. Mode: {self.config.CURRENT_MODE}")
+        self.gemini_key = os.getenv("GEMINI_API_KEY") or os.getenv("GEMINI_KEY")
+        logger.info(f"Sofia Lin V9.1 Engine Initialized (Google Gemini). Mode: {self.config.CURRENT_MODE}")
 
     def process_incoming_call(self, call_data: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -72,7 +72,7 @@ class SofiaLinV9Engine:
         }
 
     def _generate_llm_response(self, text: str) -> str:
-        if not self.openai_key:
+        if not self.gemini_key:
             return "Error interno: API Key de Inteligencia Artificial no encontrada."
             
         system_prompt = """You are Sofia Lin, the Master AI Dispatcher for MORALES PLUMBING (AI-INTEGRATED SERVICES), based in San Jose, California.
@@ -131,24 +131,17 @@ CORPORATE INFORMATION AND IMMUTABLE RULES
    - Once information is collected, execute the `agendar_cita` tool to record the appointment in the official system.
    - ZERO EMOJIS: Never output emojis.
 """
-        headers = {
-            "Authorization": f"Bearer {self.openai_key}",
-            "Content-Type": "application/json"
-        }
-        payload = {
-            "model": "gpt-4o-mini",
-            "messages": [
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": text}
-            ],
-            "max_tokens": 150,
-            "temperature": 0.3
-        }
-        
         try:
-            resp = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload, timeout=10)
-            resp.raise_for_status()
-            return resp.json()["choices"][0]["message"]["content"]
+            from google import genai
+            client = genai.Client(api_key=self.gemini_key)
+            full_content = f"{system_prompt}\n\nUSER MESSAGE:\n{text}"
+            resp = client.models.generate_content(
+                model="gemini-3.5-flash-lite",
+                contents=full_content
+            )
+            if resp.text:
+                return resp.text.strip()
+            return "Gracias por contactar a Morales Plumbing. ¿En qué le podemos colaborar?"
         except Exception as e:
             logger.error(f"LLM Error: {e}")
             return "Disculpe, nuestro sistema de inteligencia artificial está experimentando un ligero retraso. Un despachador se comunicará con usted."

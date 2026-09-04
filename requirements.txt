@@ -2,7 +2,6 @@ fastapi
 uvicorn[standard]
 httpx
 python-multipart
-openai
 python-dotenv
 
 google-api-python-client

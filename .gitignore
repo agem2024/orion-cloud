@@ -19,3 +19,7 @@ env/
 # OS Files
 .DS_Store
 Thumbs.db
+
+# Temporary Backups & Audio Tests
+*_BACKUP_*
+*.mp3
