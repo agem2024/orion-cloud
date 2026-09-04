@@ -391,7 +391,7 @@ async def get_elevenlabs_tts(text: str, lang: str = "en") -> bytes:
     primary_key = os.getenv("ELEVENLABS_API_KEY")
     backup_key = os.getenv("ELEVENLABS_API_KEY_BACKUP")
     voice_id = os.getenv("ELEVENLABS_VOICE_ID", "EXAVITQu4vr4xnSDxMaL")
-    model_id = os.getenv("ELEVENLABS_MODEL_ID", "eleven_multilingual_v2")
+    model_id = os.getenv("ELEVENLABS_MODEL_ID", "eleven_flash_v2_5")
 
     keys_to_try = []
     if primary_key and primary_key.strip():
@@ -414,14 +414,16 @@ async def get_elevenlabs_tts(text: str, lang: str = "en") -> bytes:
                 "text": text[:4096],
                 "model_id": model_id,
                 "voice_settings": {
-                    "stability": 0.5,
-                    "similarity_boost": 0.75
+                    "stability": 0.38,
+                    "similarity_boost": 0.80,
+                    "style": 0.05,
+                    "use_speaker_boost": True
                 }
             }
             async with httpx.AsyncClient(timeout=10.0) as client:
                 res = await client.post(url, headers=headers, json=payload)
                 if res.status_code == 200 and res.content:
-                    logger.info(f"[TTS] ElevenLabs audio generado con exito (clave {role})")
+                    logger.info(f"[TTS] ElevenLabs audio generado con exito (modelo {model_id}, clave {role})")
                     return res.content
                 else:
                     logger.warning(f"[TTS] ElevenLabs clave {role} fallo con HTTP {res.status_code}: {res.text[:120]}")
@@ -510,20 +512,39 @@ async def api_tts(request: Request):
         logger.error(f"TTS API error: {e}")
         return Response(content=b"", media_type="audio/mpeg")
 
+_TTS_CACHE = {}
+
 @app.get("/voice/tts")
 @app.get("/api/tts")
 async def api_tts_get(text: str = "", lang: str = "en"):
-    """GET endpoint para reproduccion directa de audio sintetizado"""
+    """GET endpoint para reproduccion directa de audio sintetizado con cache inteligente"""
     from fastapi.responses import Response
     if not text:
         return Response(content=b"", media_type="audio/mpeg")
+    
+    import hashlib
+    clean_key = f"{lang}_{hashlib.md5(text.strip().encode('utf-8')).hexdigest()}"
+    if clean_key in _TTS_CACHE:
+        return Response(
+            content=_TTS_CACHE[clean_key],
+            media_type="audio/mpeg",
+            headers={
+                "Content-Length": str(len(_TTS_CACHE[clean_key])),
+                "Accept-Ranges": "none",
+                "Cache-Control": "public, max-age=86400"
+            }
+        )
+
     try:
         audio_bytes = await get_tts_audio(text, lang)
         if audio_bytes:
+            if len(_TTS_CACHE) > 300:
+                _TTS_CACHE.pop(next(iter(_TTS_CACHE)))
+            _TTS_CACHE[clean_key] = audio_bytes
             headers = {
                 "Content-Length": str(len(audio_bytes)),
                 "Accept-Ranges": "none",
-                "Cache-Control": "no-cache"
+                "Cache-Control": "public, max-age=86400"
             }
             return Response(content=audio_bytes, media_type="audio/mpeg", headers=headers)
         return Response(content=b"", media_type="audio/mpeg")
@@ -1592,11 +1613,9 @@ async def incoming_call_ws(request: Request):
         barge_in=True,
         timeout=4
     )
-    gather.say(
-        "Thank you for calling Morales Plumbing! This is Sofia Lin. How can I help you today? Habla Sofia Lin, ¿en qué le puedo colaborar?",
-        voice="Polly.Joanna-Neural",
-        language="en-US"
-    )
+    import urllib.parse
+    greeting_text = "Thank you for calling Morales Plumbing! This is Sofia Lin. How can I help you today? Habla Sofia Lin, ¿en qué le puedo colaborar?"
+    gather.play(f"{base_url}/voice/tts?text={urllib.parse.quote(greeting_text)}&lang=es")
     response.append(gather)
     response.redirect(f"{base_url}/voice/process-turn?retry=1")
     return Response(content=str(response), media_type="application/xml")
@@ -1625,11 +1644,9 @@ async def voice_incoming_direct(request: Request):
         barge_in=True,
         timeout=4
     )
-    gather.say(
-        "Thank you for calling Morales Plumbing! This is Sofia Lin. How can I help you today? Habla Sofia Lin, ¿en qué le puedo colaborar?",
-        voice="Polly.Joanna-Neural",
-        language="en-US"
-    )
+    import urllib.parse
+    greeting_text = "Thank you for calling Morales Plumbing! This is Sofia Lin. How can I help you today? Habla Sofia Lin, ¿en qué le puedo colaborar?"
+    gather.play(f"{base_url}/voice/tts?text={urllib.parse.quote(greeting_text)}&lang=es")
     response.append(gather)
     response.redirect(f"{base_url}/voice/process-turn?retry=1")
     return Response(content=str(response), media_type="application/xml")
@@ -1648,6 +1665,7 @@ async def voice_process_turn(request: Request):
 
     # 1. Manejo de silencios o falta de voz (Ingles prioritario)
     if not speech_result:
+        import urllib.parse
         if retry == "1":
             gather = Gather(
                 input="speech",
@@ -1658,20 +1676,14 @@ async def voice_process_turn(request: Request):
                 barge_in=True,
                 timeout=5
             )
-            gather.say(
-                "Sorry, I did not catch that. Could you please tell me the reason for your call or your service address?",
-                voice="Polly.Joanna-Neural",
-                language="en-US"
-            )
+            retry_text = "Sorry, I did not catch that. Could you please tell me the reason for your call or your service address?"
+            gather.play(f"{base_url}/voice/tts?text={urllib.parse.quote(retry_text)}&lang=en")
             response.append(gather)
             response.redirect(f"{base_url}/voice/process-turn?retry=2")
             return Response(content=str(response), media_type="application/xml")
         else:
-            response.say(
-                "Thank you for calling Morales Plumbing. Please call us again at 669 213 4422. Have a wonderful day!",
-                voice="Polly.Joanna-Neural",
-                language="en-US"
-            )
+            goodbye_text = "Thank you for calling Morales Plumbing. Please call us again at 669 213 4422. Have a wonderful day!"
+            response.play(f"{base_url}/voice/tts?text={urllib.parse.quote(goodbye_text)}&lang=en")
             response.hangup()
             return Response(content=str(response), media_type="application/xml")
 
@@ -1699,11 +1711,9 @@ async def voice_process_turn(request: Request):
         "talk to alex the owner", "speak to alex", "talk to ceo"
     ]
     if any(t in speech_lower for t in transfer_triggers):
-        response.say(
-            "Transferring you to our direct dispatch line right now. Please hold." if lang == "en" else "Con mucho gusto, le transfiero de inmediato con nuestro despachador de guardia. Un momento por favor.",
-            voice="Polly.Joanna-Neural" if lang == "en" else "Polly.Mia-Neural",
-            language="en-US" if lang == "en" else "es-MX"
-        )
+        transfer_text = "Transferring you to our direct dispatch line right now. Please hold." if lang == "en" else "Con mucho gusto, le transfiero de inmediato con nuestro despachador de guardia. Un momento por favor."
+        import urllib.parse
+        response.play(f"{base_url}/voice/tts?text={urllib.parse.quote(transfer_text)}&lang={lang}")
         dial = Dial()
         dial.number("+16692342444")
         response.append(dial)
@@ -1719,7 +1729,7 @@ async def voice_process_turn(request: Request):
     clean_speech = re.sub(r'\[([^\]]+)\]\([^\)]+\)', r'\1', clean_speech)
     clean_speech = re.sub(r'[^\w\s.,;:?¿!¡$()/-]', '', clean_speech).strip()
 
-    # 6. Responder y encadenar siguiente turno conversacional a cadencia humana 100% natural
+    # 6. Responder y encadenar siguiente turno conversacional con ElevenLabs audio
     gather = Gather(
         input="speech",
         action=f"{base_url}/voice/process-turn",
@@ -1729,11 +1739,10 @@ async def voice_process_turn(request: Request):
         barge_in=True,
         timeout=5
     )
-    gather.say(
-        clean_speech,
-        voice="Polly.Joanna-Neural" if lang == "en" else "Polly.Mia-Neural",
-        language="en-US" if lang == "en" else "es-MX"
-    )
+    import urllib.parse
+    audio_param = urllib.parse.quote(clean_speech)
+    tts_url = f"{base_url}/voice/tts?text={audio_param}&lang={lang}"
+    gather.play(tts_url)
     response.append(gather)
     response.redirect(f"{base_url}/voice/process-turn?retry=1")
     return Response(content=str(response), media_type="application/xml")
