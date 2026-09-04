@@ -1581,7 +1581,7 @@ def _start_call_recording_bg(call_sid: str):
     try:
         tw_sid = os.getenv("TWILIO_ACCOUNT_SID")
         tw_token = os.getenv("TWILIO_AUTH_TOKEN")
-        if call_sid and tw_sid and tw_token and not call_sid.startswith("CA_TEST") and not call_sid.startswith("CA_LIVE_TEST"):
+        if call_sid and tw_sid and tw_token and "TEST" not in call_sid:
             from twilio.rest import Client as TwilioClient
             tw_cli = TwilioClient(tw_sid, tw_token)
             tw_cli.calls(call_sid).recordings.create(recording_channels="dual")
@@ -1710,7 +1710,12 @@ async def voice_process_turn(request: Request):
         "representative", "live operator", "talk to the owner", "speak to the owner",
         "talk to alex the owner", "speak to alex", "talk to ceo"
     ]
-    if any(t in speech_lower for t in transfer_triggers):
+    import unicodedata
+    speech_clean_accents = ''.join(
+        c for c in unicodedata.normalize('NFD', speech_lower)
+        if unicodedata.category(c) != 'Mn'
+    )
+    if any(t in speech_lower or t in speech_clean_accents for t in transfer_triggers):
         transfer_text = "Transferring you to our direct dispatch line right now. Please hold." if lang == "en" else "Con mucho gusto, le transfiero de inmediato con nuestro despachador de guardia. Un momento por favor."
         import urllib.parse
         response.play(f"{base_url}/voice/tts?text={urllib.parse.quote(transfer_text)}&lang={lang}")
