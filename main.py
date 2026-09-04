@@ -437,7 +437,7 @@ async def get_openai_tts(text: str, lang: str = "es") -> bytes:
     try:
         import openai
         client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
-        voice = "onyx" if lang == "en" else "echo"
+        voice = "nova" if lang == "en" else "shimmer"
         response = client.audio.speech.create(
             model="tts-1-hd",
             voice=voice,
@@ -1216,59 +1216,67 @@ def save_appointment(name: str, phone: str, email: str, address: str, status: st
             tg_token = os.getenv("TELEGRAM_BOT_TOKEN")
             tg_chat = os.getenv("TELEGRAM_OWNER_ID")
             if tg_token and tg_chat:
-                tipo_t = "[ALERTA] EMERGENCIA CRÍTICA P0/P1" if is_emergency else f"[CALENDAR] CITA PROGRAMADA ({scheduled_time})"
-                cal_str = f"\n[CALENDAR] *Google Calendar:* [Ver Evento en Calendar]({cal_link})" if cal_link else ""
+                import html
+                tipo_t = "[ALERTA] EMERGENCIA CRÍTICA P0/P1" if is_emergency else f"CITA PROGRAMADA ({scheduled_time})"
+                cal_str = f'\n• <b>Google Calendar:</b> <a href="{html.escape(cal_link)}">Ver Evento en Calendar</a>' if cal_link else ""
+                
+                safe_name = html.escape(str(name))
+                safe_owner = html.escape(str(owner_status))
+                safe_phone = html.escape(str(phone))
+                safe_email = html.escape(str(email))
+                safe_address = html.escape(str(address))
+                safe_prop = html.escape(str(property_type))
+                safe_person = html.escape(str(present_person))
+                safe_access = html.escape(str(access_notes))
+                safe_time = html.escape(str(scheduled_time))
+                safe_diag = html.escape(str(diagnosis))
+                safe_t_diag = html.escape(str(tech_diag))
+                safe_t_mat = html.escape(str(tech_mat))
+                safe_t_safe = html.escape(str(tech_safety))
+
                 msg_tg = (
-                    f"[ALERTA] *MORALES PLUMBING — FICHA TÉCNICA DE DESPACHO* [ALERTA]\n\n"
-                    f"[TICKET] *Ticket ID:* `{code}`\n"
-                    f"[PRIORIDAD] *Prioridad:* {tipo_t}\n"
-                    f"[CLIENTE] *Cliente:* {name} ({owner_status})\n"
-                    f"[TELEFONO] *Teléfono:* `{phone}`\n"
-                    f"[EMAIL] *Email:* `{email}`\n"
-                    f"[DIRECCION] *Dirección de Servicio:* {address}\n"
-                    f"[TIPO] *Tipo de Inmueble:* {property_type}\n"
-                    f"[PRESENTE] *Persona en Sitio:* {present_person}\n"
-                    f"[ACCESO] *Seguridad / Accesos:* {access_notes}\n"
-                    f"[HORARIO] *Ventana Horaria:* {scheduled_time}\n"
-                    f"[PAGO] *Membresía:* Plan Free ($0.00 Diagnostic Fee)\n\n"
-                    f"[REPORTE] *REPORTE DEL CLIENTE (Palabras Cotidianas):*\n"
-                    f"\"{diagnosis}\"\n\n"
-                    f"[ANALISIS] *ANÁLISIS TÉCNICO DE INGENIERÍA (SOFIA AI - CPC):*\n"
-                    f"* *Diagnóstico CPC:* {tech_diag}\n"
-                    f"* *Materiales/Herramientas a Bordo:* {tech_mat}\n"
-                    f"* *Seguridad (Cal/OSHA Title 8):* {tech_safety}{cal_str}\n\n"
-                    f"[LICENCIA] *Licencia:* CSLB C-36 #1156542 | San Jose, CA\n"
-                    f"[TELEFONO] *Central:* (669) 213-4422 | *Despacho:* (669) 234-2444"
+                    f"<b>[ALERTA] MORALES PLUMBING — FICHA TÉCNICA DE DESPACHO [ALERTA]</b>\n\n"
+                    f"<b>[TICKET] Ticket ID:</b> <code>{code}</code>\n"
+                    f"<b>[PRIORIDAD] Prioridad:</b> {tipo_t}\n"
+                    f"<b>[CLIENTE] Cliente:</b> {safe_name} ({safe_owner})\n"
+                    f"<b>[TELEFONO] Teléfono:</b> <code>{safe_phone}</code>\n"
+                    f"<b>[EMAIL] Email:</b> <code>{safe_email}</code>\n"
+                    f"<b>[DIRECCION] Dirección de Servicio:</b> {safe_address}\n"
+                    f"<b>[TIPO] Tipo de Inmueble:</b> {safe_prop}\n"
+                    f"<b>[PRESENTE] Persona en Sitio:</b> {safe_person}\n"
+                    f"<b>[ACCESO] Seguridad / Accesos:</b> {safe_access}\n"
+                    f"<b>[HORARIO] Ventana Horaria:</b> {safe_time}\n"
+                    f"<b>[PAGO] Membresía:</b> Plan Free ($0.00 Diagnostic Fee)\n\n"
+                    f"<b>[REPORTE] REPORTE DEL CLIENTE:</b>\n"
+                    f"\"{safe_diag}\"\n\n"
+                    f"<b>[ANALISIS] ANÁLISIS TÉCNICO DE INGENIERÍA (SOFIA AI - CPC):</b>\n"
+                    f"• <b>Diagnóstico CPC:</b> {safe_t_diag}\n"
+                    f"• <b>Materiales/Herramientas:</b> {safe_t_mat}\n"
+                    f"• <b>Seguridad (Cal/OSHA):</b> {safe_t_safe}{cal_str}\n\n"
+                    f"<b>[LICENCIA] Licencia:</b> CSLB C-36 #1156542 | San Jose, CA\n"
+                    f"<b>[TELEFONO] Central:</b> (669) 213-4422 | <b>Despacho:</b> (669) 234-2444"
                 )
-                import subprocess, ssl
+
                 tg_url = f"https://api.telegram.org/bot{tg_token}/sendMessage"
-                tg_payload_str = json.dumps({
+                payload = {
                     "chat_id": tg_chat,
                     "text": msg_tg,
-                    "parse_mode": "Markdown",
+                    "parse_mode": "HTML",
                     "disable_web_page_preview": True
-                })
+                }
                 
-                # Intento 1: Curl directo con bypass de revocación SSL de Windows
-                try:
-                    cmd_tg = ["curl.exe", "--ssl-no-revoke", "-s", "-X", "POST", tg_url, "-H", "Content-Type: application/json", "-d", tg_payload_str]
-                    res_c = subprocess.run(cmd_tg, capture_output=True, text=True, timeout=10)
-                    if '"ok":true' in res_c.stdout:
-                        logger.info("[NOTIFICACION] Ficha completa entregada a Telegram exitosamente vía curl")
+                # Envio HTTP directo con timeout seguro
+                r_tg = requests.post(tg_url, json=payload, timeout=10)
+                if r_tg.status_code == 200:
+                    logger.info(f"[NOTIFICACION] Ficha completa entregada a Telegram con exito (HTML) para ticket {code}")
+                else:
+                    logger.warning(f"[NOTIFICACION] Reintentando envio a Telegram en texto plano: {r_tg.text}")
+                    plain_text = re.sub(r'<[^>]+>', '', msg_tg)
+                    r_tg2 = requests.post(tg_url, json={"chat_id": tg_chat, "text": plain_text}, timeout=10)
+                    if r_tg2.status_code == 200:
+                        logger.info(f"[NOTIFICACION] Ficha entregada a Telegram en texto plano para ticket {code}")
                     else:
-                        raise Exception(f"Curl Telegram output: {res_c.stdout}")
-                except Exception as c_err:
-                    # Intento 2: urllib con contexto SSL permisivo
-                    try:
-                        import urllib.request
-                        ctx = ssl.create_default_context()
-                        ctx.check_hostname = False
-                        ctx.verify_mode = ssl.CERT_NONE
-                        req_tg = urllib.request.Request(tg_url, data=tg_payload_str.encode("utf-8"), headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"})
-                        with urllib.request.urlopen(req_tg, context=ctx, timeout=10) as resp_tg:
-                            logger.info(f"[NOTIFICACION] Ficha completa enviada a Telegram con status: {resp_tg.status}")
-                    except Exception as tg_inner_err:
-                        logger.error(f"Error crítico enviando Telegram: {tg_inner_err}")
+                        logger.error(f"[NOTIFICACION] Fallo final Telegram: {r_tg2.text}")
         except Exception as e:
             logger.error(f"Error enviando Telegram: {e}")
 
@@ -1576,18 +1584,171 @@ def _get_base_url(request: Request) -> str:
         return f"{forwarded_proto}://{forwarded_host}"
     return os.getenv("BASE_URL", "https://orion-cloud-1.onrender.com")
 
-def _start_call_recording_bg(call_sid: str):
-    """Inicia la grabacion dual de la llamada en segundo plano sin bloquear la respuesta TwiML"""
+def _start_call_recording_bg(call_sid: str, base_url: str = ""):
+    """Inicia la grabacion dual de la llamada en segundo plano con callback de notificacion"""
     try:
         tw_sid = os.getenv("TWILIO_ACCOUNT_SID")
         tw_token = os.getenv("TWILIO_AUTH_TOKEN")
         if call_sid and tw_sid and tw_token and "TEST" not in call_sid:
             from twilio.rest import Client as TwilioClient
             tw_cli = TwilioClient(tw_sid, tw_token)
-            tw_cli.calls(call_sid).recordings.create(recording_channels="dual")
+            cb_url = f"{base_url}/voice/recording-status" if base_url else ""
+            if cb_url:
+                tw_cli.calls(call_sid).recordings.create(recording_channels="dual", recording_status_callback=cb_url)
+            else:
+                tw_cli.calls(call_sid).recordings.create(recording_channels="dual")
             logger.info(f"[GRABACION] Grabacion automatica iniciada en segundo plano para {call_sid}")
     except Exception as e:
         logger.warning(f"Aviso inicio de grabacion en segundo plano: {e}")
+
+@app.api_route("/voice/recording-status", methods=["GET", "POST"])
+async def voice_recording_status(request: Request):
+    """Callback de Twilio cuando finaliza la grabacion de una llamada"""
+    form_data = await request.form() if request.method == "POST" else request.query_params
+    rec_sid = form_data.get("RecordingSid")
+    call_sid = form_data.get("CallSid")
+    duration = form_data.get("RecordingDuration", "0")
+    base_url = _get_base_url(request)
+    
+    if rec_sid:
+        logger.info(f"[GRABACION] Grabacion completada: SID {rec_sid} (Duracion: {duration}s)")
+        try:
+            tg_token = os.getenv("TELEGRAM_BOT_TOKEN")
+            tg_chat = os.getenv("TELEGRAM_OWNER_ID")
+            if tg_token and tg_chat:
+                direct_url = f"{base_url}/voice/recording/{rec_sid}.mp3"
+                panel_url = f"{base_url}/voice/recordings/latest"
+                text_msg = (
+                    f"<b>[AUDIO] NUEVA GRABACIÓN DE LLAMADA DISPONIBLE [AUDIO]</b>\n\n"
+                    f"• <b>Recording SID:</b> <code>{rec_sid}</code>\n"
+                    f"• <b>Call SID:</b> <code>{call_sid}</code>\n"
+                    f"• <b>Duración:</b> {duration}s (Doble Canal)\n"
+                    f"• <b>Escuchar Audio:</b> <a href=\"{direct_url}\">Reproducir Grabación MP3</a>\n"
+                    f"• <b>Panel Completo:</b> <a href=\"{panel_url}\">Historial de Grabaciones</a>"
+                )
+                requests.post(
+                    f"https://api.telegram.org/bot{tg_token}/sendMessage",
+                    json={"chat_id": tg_chat, "text": text_msg, "parse_mode": "HTML"},
+                    timeout=10
+                )
+        except Exception as e:
+            logger.warning(f"Aviso notificacion grabacion Telegram: {e}")
+            
+    return {"status": "ok", "recording_sid": rec_sid}
+
+@app.get("/voice/recording/{recording_sid}.mp3")
+async def get_recording_audio(recording_sid: str):
+    """Proxy seguro de streaming de grabaciones de Twilio sin requerir login en navegador"""
+    from fastapi.responses import Response
+    import requests
+    tw_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    tw_token = os.getenv("TWILIO_AUTH_TOKEN")
+    if not tw_sid or not tw_token:
+        return Response(content="Credenciales Twilio no configuradas", status_code=500)
+    
+    tw_rec_url = f"https://api.twilio.com/2010-04-01/Accounts/{tw_sid}/Recordings/{recording_sid}.mp3"
+    try:
+        r = requests.get(tw_rec_url, auth=(tw_sid, tw_token), timeout=20)
+        if r.status_code == 200:
+            headers = {
+                "Content-Type": "audio/mpeg",
+                "Content-Length": str(len(r.content)),
+                "Accept-Ranges": "bytes",
+                "Cache-Control": "public, max-age=86400"
+            }
+            return Response(content=r.content, media_type="audio/mpeg", headers=headers)
+        return Response(content=f"Error obteniendo grabacion: {r.status_code}", status_code=r.status_code)
+    except Exception as e:
+        logger.error(f"Error en proxy de grabacion: {e}")
+        return Response(content=f"Error de conexion: {e}", status_code=500)
+
+@app.get("/voice/recordings/latest")
+async def get_latest_recordings_player(request: Request):
+    """Reproductor web directo de grabaciones telefónicas de Morales Plumbing"""
+    from fastapi.responses import HTMLResponse
+    tw_sid = os.getenv("TWILIO_ACCOUNT_SID")
+    tw_token = os.getenv("TWILIO_AUTH_TOKEN")
+    base_url = _get_base_url(request)
+    
+    recs_data = []
+    if tw_sid and tw_token:
+        try:
+            from twilio.rest import Client as TwilioClient
+            tw_cli = TwilioClient(tw_sid, tw_token)
+            recs = tw_cli.recordings.list(limit=10)
+            for r in recs:
+                recs_data.append({
+                    "sid": r.sid,
+                    "date": str(r.date_created)[:19],
+                    "duration": r.duration,
+                    "channels": r.channels,
+                    "status": r.status,
+                    "stream_url": f"{base_url}/voice/recording/{r.sid}.mp3"
+                })
+        except Exception as e:
+            logger.error(f"Error listando grabaciones Twilio: {e}")
+
+    rows_html = ""
+    for r in recs_data:
+        rows_html += f"""
+        <tr style="border-bottom: 1px solid #1E3A5F;">
+            <td style="padding: 12px; font-family: monospace; color: #D4AF37;">{r['sid']}</td>
+            <td style="padding: 12px; color: #E2E8F0;">{r['date']} UTC</td>
+            <td style="padding: 12px; color: #64FFDA;">{r['duration']}s ({r['channels']} canales)</td>
+            <td style="padding: 12px;">
+                <audio controls preload="none" style="height: 36px; outline: none;">
+                    <source src="{r['stream_url']}" type="audio/mpeg">
+                    Tu navegador no soporta audio.
+                </audio>
+            </td>
+            <td style="padding: 12px;">
+                <a href="{r['stream_url']}" download="{r['sid']}.mp3" style="color: #D4AF37; text-decoration: none; font-weight: bold; padding: 6px 12px; background: rgba(212,175,55,0.15); border-radius: 4px; border: 1px solid #D4AF37;">Descargar</a>
+            </td>
+        </tr>
+        """
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="es">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Morales Plumbing - Auditoría de Grabaciones Telefónicas</title>
+        <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    </head>
+    <body style="margin: 0; background: #0A192F; font-family: 'Inter', sans-serif; color: #CCD6F6; padding: 20px;">
+        <div style="max-width: 1000px; margin: 0 auto; background: #112240; border-radius: 12px; border: 1px solid #233554; border-bottom: 4px solid #D4AF37; box-shadow: 0 10px 30px rgba(0,0,0,0.5); overflow: hidden;">
+            <div style="padding: 24px; background: linear-gradient(135deg, #0A192F 0%, #112240 100%); border-bottom: 2px solid #233554; display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 style="margin: 0; font-size: 22px; color: #FFFFFF; font-weight: 700;">MORALES PLUMBING</h1>
+                    <p style="margin: 4px 0 0; font-size: 13px; color: #D4AF37; font-weight: 600;">CONTROL DE CALIDAD — AUDITORÍA DE LLAMADAS EN VIVO</p>
+                </div>
+                <div style="text-align: right; font-size: 12px; color: #8892B0;">
+                    <div>Lic. C-36 #1156542 | San Jose, CA</div>
+                    <div>(669) 213-4422</div>
+                </div>
+            </div>
+            <div style="padding: 24px; overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 14px;">
+                    <thead>
+                        <tr style="background: #0A192F; color: #8892B0; border-bottom: 2px solid #D4AF37;">
+                            <th style="padding: 12px;">ID Grabación</th>
+                            <th style="padding: 12px;">Fecha / Hora</th>
+                            <th style="padding: 12px;">Duración</th>
+                            <th style="padding: 12px;">Reproductor</th>
+                            <th style="padding: 12px;">Descarga</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {rows_html if rows_html else '<tr><td colspan="5" style="padding: 24px; text-align: center; color: #8892B0;">No hay grabaciones disponibles en Twilio.</td></tr>'}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+    return HTMLResponse(content=html_content)
 
 @app.api_route("/incoming-call", methods=["GET", "POST"])
 async def incoming_call_ws(request: Request):
@@ -1596,8 +1757,9 @@ async def incoming_call_ws(request: Request):
         form_data = await request.form() if request.method == "POST" else {}
         call_sid = form_data.get("CallSid") or request.query_params.get("CallSid")
         if call_sid:
+            base_url = _get_base_url(request)
             import threading
-            threading.Thread(target=_start_call_recording_bg, args=(call_sid,), daemon=True).start()
+            threading.Thread(target=_start_call_recording_bg, args=(call_sid, base_url), daemon=True).start()
     except Exception as e:
         logger.warning(f"Aviso captura CallSid: {e}")
 
@@ -1627,8 +1789,9 @@ async def voice_incoming_direct(request: Request):
         form_data = await request.form() if request.method == "POST" else {}
         call_sid = form_data.get("CallSid") or request.query_params.get("CallSid")
         if call_sid:
+            base_url = _get_base_url(request)
             import threading
-            threading.Thread(target=_start_call_recording_bg, args=(call_sid,), daemon=True).start()
+            threading.Thread(target=_start_call_recording_bg, args=(call_sid, base_url), daemon=True).start()
     except Exception as e:
         logger.warning(f"Aviso captura CallSid: {e}")
 
