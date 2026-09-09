@@ -114,6 +114,23 @@ CORPORATE INFORMATION AND IMMUTABLE RULES
      * English: "I am Sofia Lin, customer care dispatcher for Morales Plumbing. How can I assist you with your plumbing needs today?"
      * Spanish: "Soy Sofia Lin, coordinadora de despacho de Morales Plumbing. ¿En qué problema o servicio de plomería le puedo colaborar hoy?"
      * In other languages, reply similarly in that language, keeping total focus on Morales Plumbing.
+
+9. ANTI-SPAM & TELEMARKETING FILTER:
+   - If a caller or message is attempting to sell services (marketing, SEO, advertising, business loans, insurance, web design) or is an automated telemarketing robot:
+   - Immediately decline politely and firmly without scheduling or taking information:
+     * English: "We are not interested, thank you for calling."
+     * Spanish: "No estamos interesados, muchas gracias por llamar."
+
+10. ABUSIVE, VULGAR OR NON-INTENT CALLERS (PROFESSIONAL DE-ESCALATION & FIRM BOUNDARIES):
+   - If a caller uses offensive, vulgar, obscene, or hostile language, or clearly has no intention of booking a plumbing service (pranks, harassment, trolling):
+   - Maintain calm, dignified, and unwavering professionalism. Never argue or use offensive language.
+   - Set firm professional boundaries:
+     * English: "At Morales Plumbing we maintain strictly professional customer service. If you have a plumbing problem we are glad to assist; otherwise, we must conclude this call. Have a good day."
+     * Spanish: "En Morales Plumbing mantenemos una atención estrictamente profesional. Si tiene una necesidad de plomería con gusto le atendemos; de lo contrario, daremos por terminada la llamada. Que tenga un buen día."
+   - Never schedule appointments or collect intake data for abusive or prank callers.
+
+11. CALL RECORDING COMPLIANCE (CALIFORNIA PENAL CODE § 632):
+   - Every incoming telephone call begins with the two-party consent legal notice: "Notice, this call may be recorded. Thank you for calling Morales Plumbing, License C 36 number 1156542 in San Jose..."
 """
 
 def sanitize_text_for_speech(text: str, lang: str = "en") -> str:
@@ -751,19 +768,46 @@ async def get_elevenlabs_tts(text: str, lang: str = "en") -> bytes:
     return None
 
 async def get_google_tts_bytes(text: str, lang: str = "es") -> bytes:
-    """Genera audio con Google TTS (Respaldo oficial del ecosistema Google)"""
+    """Genera audio con Google TTS (Respaldo oficial del ecosistema Google) con chunking inteligente para textos largos"""
     try:
         text = sanitize_text_for_speech(text, lang)
         if not text.strip():
             return None
         from urllib.parse import quote
-        text_encoded = quote(text[:250])
-        url = f"https://translate.google.com/translate_tts?ie=UTF-8&q={text_encoded}&tl={lang}&client=tw-ob"
-        async with httpx.AsyncClient(timeout=8.0) as client:
+        import re
+
+        # Dividir texto en chunks de maximo 90 caracteres respetando puntuación
+        raw_chunks = re.split(r'([.!?,\n]+)', text)
+        chunks = []
+        curr = ""
+        for part in raw_chunks:
+            if len(curr) + len(part) <= 90:
+                curr += part
+            else:
+                if curr.strip():
+                    chunks.append(curr.strip())
+                curr = part
+        if curr.strip():
+            chunks.append(curr.strip())
+        
+        if not chunks:
+            chunks = [text[:90]]
+
+        all_audio = bytearray()
+        async with httpx.AsyncClient(timeout=12.0) as client:
             headers = {"User-Agent": "Mozilla/5.0"}
-            r = await client.get(url, headers=headers)
-            if r.status_code == 200 and r.content:
-                return r.content
+            for chunk in chunks:
+                if not chunk.strip():
+                    continue
+                url = f"https://translate.google.com/translate_tts?ie=UTF-8&q={quote(chunk)}&tl={lang}&client=tw-ob"
+                r = await client.get(url, headers=headers)
+                if r.status_code == 200 and r.content:
+                    all_audio.extend(r.content)
+                else:
+                    logger.warning(f"[TTS] Google TTS chunk fallo (status {r.status_code}) para: {chunk[:30]}")
+
+        if len(all_audio) > 0:
+            return bytes(all_audio)
     except Exception as ge:
         logger.warning(f"[TTS] Google TTS error: {ge}")
     return None
@@ -876,6 +920,22 @@ async def api_tts_get(text: str = "", lang: str = "en"):
     except Exception as e:
         logger.error(f"TTS GET error: {e}")
         return Response(content=b"", media_type="audio/mpeg")
+
+@app.on_event("startup")
+async def preload_voice_assets():
+    """Precarga en memoria los mensajes de bienvenida y prompts fijos para latencia <1ms en llamadas Twilio"""
+    import hashlib
+    greeting_en = "Notice, this call may be recorded. Thank you for calling Morales Plumbing, License C 36 number 1156542 in San Jose. This is Sofia Lin. Multilingual assistance is available in Spanish or your preferred language. How may I help you today?"
+    clean_en = sanitize_text_for_speech(greeting_en, "en")
+    key_en = f"en_{hashlib.md5(clean_en.strip().encode('utf-8')).hexdigest()}"
+    try:
+        logger.info("[STARTUP] Precalentando motor TTS para el saludo inicial de Sofia Lin...")
+        audio = await get_tts_audio(clean_en, "en")
+        if audio:
+            _TTS_CACHE[key_en] = audio
+            logger.info(f"[STARTUP] Saludo inicial precargado en memoria exitosamente ({len(audio)} bytes)")
+    except Exception as e:
+        logger.warning(f"[STARTUP] Aviso en precarga de audio: {e}")
 
 # ============ WEB CHAT API ============
 @app.post("/api/chat")
